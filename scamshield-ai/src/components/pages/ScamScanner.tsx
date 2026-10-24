@@ -335,12 +335,24 @@ export default function ScamScanner() {
       const response = await fetch(`${API_BASE_URL}/api/scan/image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: selectedImage, language }),
+        body: JSON.stringify({
+          image: selectedImage,
+          filename: imageFileName || 'screenshot.png',
+          language,
+        }),
       })
 
       const data = await response.json().catch(() => ({}))
       if (!response.ok) {
         throw new Error(data.error || 'Vision analysis failed.')
+      }
+
+      if (data.scan_id && selectedImage) {
+        try {
+          localStorage.setItem(`scamshield_img_${data.scan_id}`, selectedImage)
+        } catch {
+          // localStorage quota safety
+        }
       }
 
       dbLogger.success('ScamScanner', 'Image scan completed and saved to Supabase:', data)

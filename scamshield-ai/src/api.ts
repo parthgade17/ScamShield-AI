@@ -133,6 +133,9 @@ export type CaseHistoryItem = {
   created_at: string | null
   detection_method?: string
   review_status?: string
+  explanation?: string
+  indicators?: Array<string | { type?: string; thumbnail?: string; filename?: string; title?: string }>
+  thumbnail?: string | null
 }
 
 export type LinkHistoryItem = {
@@ -174,17 +177,35 @@ export async function fetchHistoryFromSupabase(searchQuery?: string): Promise<Ca
     created_at?: string
     detection_method?: string
     review_status?: string
+    explanation?: string
+    indicators?: any[]
   }>
 
-  const mapped: CaseHistoryItem[] = rows.map((r) => ({
-    id: r.id,
-    message: r.message || 'Scanned Content',
-    risk_level: r.risk_level || 'Low',
-    risk_score: typeof r.risk_score === 'number' ? r.risk_score : 0,
-    created_at: r.created_at || null,
-    detection_method: r.detection_method || 'rule+Gemini based',
-    review_status: r.review_status || 'pending',
-  }))
+  const mapped: CaseHistoryItem[] = rows.map((r) => {
+    // Check if thumbnail is stored in indicators
+    let thumb: string | null = null
+    if (Array.isArray(r.indicators)) {
+      for (const item of r.indicators) {
+        if (typeof item === 'object' && item !== null && item.thumbnail) {
+          thumb = item.thumbnail
+          break
+        }
+      }
+    }
+
+    return {
+      id: r.id,
+      message: r.message || 'Scanned Content',
+      risk_level: r.risk_level || 'Low',
+      risk_score: typeof r.risk_score === 'number' ? r.risk_score : 0,
+      created_at: r.created_at || null,
+      detection_method: r.detection_method || 'rule+Gemini based',
+      review_status: r.review_status || 'pending',
+      explanation: r.explanation || '',
+      indicators: r.indicators || [],
+      thumbnail: thumb,
+    }
+  })
 
   const latency = Date.now() - startTime
   dbLogger.success(

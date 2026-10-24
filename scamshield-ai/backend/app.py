@@ -271,6 +271,13 @@ class ScanHistory(db.Model):
         if reviewed and reviewed.tzinfo is None:
             reviewed = reviewed.replace(tzinfo=timezone.utc)
 
+        thumbnail = None
+        if self.indicators and isinstance(self.indicators, list):
+            for ind in self.indicators:
+                if isinstance(ind, dict) and ind.get("thumbnail"):
+                    thumbnail = ind["thumbnail"]
+                    break
+
         return {
             "id": self.id,
             "message": self.message,
@@ -281,6 +288,7 @@ class ScanHistory(db.Model):
             "recommendations": self.recommendations or [],
             "detection_method": self.detection_method,
             "ai_model": self.ai_model,
+            "thumbnail": thumbnail,
             "review_status": self.review_status or ("pending" if self.risk_level in ("High", "Medium") else "not_required"),
             "review_decision": self.review_decision,
             "reviewed_at": reviewed.isoformat() if reviewed else None,
@@ -1245,12 +1253,23 @@ def scan_image():
     try:
         norm_risk = result.get("risk_level", "Low")
         extracted_txt = result.get("extracted_text") or "Screenshot Analysis"
+
+        # Attach image metadata to indicators for history visualization
+        indicators_list = list(result.get("indicators", []))
+        image_meta = {
+            "type": "image_scan",
+            "filename": (data.get("filename") or "screenshot.png"),
+        }
+        if len(image_b64) <= 120000:
+            image_meta["thumbnail"] = f"data:{mime_type};base64,{image_b64}"
+        indicators_list.insert(0, image_meta)
+
         record = ScanHistory(
             message=extracted_txt,
             risk_score=int(result.get("risk_score", 0)),
             risk_level=norm_risk,
             explanation=result.get("explanation", ""),
-            indicators=result.get("indicators", []),
+            indicators=indicators_list,
             recommendations=result.get("recommendations", []),
             detection_method="gemini_vision",
             ai_model=GEMINI_MODEL,
