@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "installCommand": "npm install && npm install --prefix scamshield-ai",
   "buildCommand": "npm run build --prefix scamshield-ai",
   "outputDirectory": "scamshield-ai/dist",
   "framework": "vite",
