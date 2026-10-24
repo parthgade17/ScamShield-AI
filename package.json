@@ -1,5 +1,16 @@
 {
+  "name": "scamshield-ai-platform",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm run dev --prefix scamshield-ai",
+    "build": "npm run build --prefix scamshield-ai",
+    "lint": "npm run lint --prefix scamshield-ai",
+    "preview": "npm run preview --prefix scamshield-ai"
+  },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.118.0",
     "lucide-react": "^1.61.0",
     "recharts": "^3.10.1"
   }

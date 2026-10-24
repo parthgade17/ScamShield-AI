@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import {
   ShieldCheck,
   AlertTriangle,
@@ -7,22 +8,68 @@ import {
   Link,
   MessageSquareWarning,
 } from 'lucide-react'
+import { API_BASE_URL } from '../../api'
+import { useLanguage } from '../../context/LanguageContext'
 
 type DashboardProps = {
   onNavigate: (page: string) => void
 }
 
+type Stats = {
+  total_scans: number
+  high_risk: number
+  pending_reviews: number
+  cases_reviewed: number
+  total_links: number
+}
+
 function Dashboard({ onNavigate }: DashboardProps) {
+  const { t } = useLanguage()
+  const [stats, setStats] = useState<Stats>({
+    total_scans: 0,
+    high_risk: 0,
+    pending_reviews: 0,
+    cases_reviewed: 0,
+    total_links: 0,
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+    async function loadStats() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/dashboard/stats`)
+        if (response.ok) {
+          const data = await response.json()
+          if (isMounted) {
+            setStats({
+              total_scans: data.total_scans ?? 0,
+              high_risk: data.high_risk ?? 0,
+              pending_reviews: data.pending_reviews ?? 0,
+              cases_reviewed: data.cases_reviewed ?? 0,
+              total_links: data.total_links ?? 0,
+            })
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard stats:', err)
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+    loadStats()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
   return (
     <div className="page-container">
       <div className="welcome-section">
         <div>
-          <p className="eyebrow">YOUR DIGITAL SAFETY CENTER</p>
-          <h1>Welcome to ScamShield AI 🛡️</h1>
-          <p>
-            Detect suspicious messages, check links, and make safer
-            decisions online.
-          </p>
+          <p className="eyebrow">{t('dashboard.eyebrow')}</p>
+          <h1>{t('dashboard.welcome')}</h1>
+          <p>{t('dashboard.subtitle')}</p>
         </div>
 
         <ShieldCheck size={70} />
@@ -31,36 +78,36 @@ function Dashboard({ onNavigate }: DashboardProps) {
       <div className="stats-grid">
         <div className="stat-card">
           <ScanSearch size={25} />
-          <p>Total Scans</p>
-          <h2>248</h2>
-          <span>Demo statistics</span>
+          <p>{t('dashboard.total_scans')}</p>
+          <h2>{loading ? '...' : stats.total_scans}</h2>
+          <span>{t('dashboard.total_scans_sub')}</span>
         </div>
 
         <div className="stat-card">
           <AlertTriangle size={25} />
-          <p>High-Risk Cases</p>
-          <h2>32</h2>
-          <span>Require attention</span>
+          <p>{t('dashboard.high_risk')}</p>
+          <h2>{loading ? '...' : stats.high_risk}</h2>
+          <span>{t('dashboard.high_risk_sub')}</span>
         </div>
 
         <div className="stat-card">
           <Clock size={25} />
-          <p>Pending Reviews</p>
-          <h2>8</h2>
-          <span>Awaiting human review</span>
+          <p>{t('dashboard.pending_reviews')}</p>
+          <h2>{loading ? '...' : stats.pending_reviews}</h2>
+          <span>{t('dashboard.pending_reviews_sub')}</span>
         </div>
 
         <div className="stat-card">
           <ShieldCheck size={25} />
-          <p>Cases Reviewed</p>
-          <h2>64</h2>
-          <span>Demo statistics</span>
+          <p>{t('dashboard.cases_reviewed')}</p>
+          <h2>{loading ? '...' : stats.cases_reviewed}</h2>
+          <span>{t('dashboard.cases_reviewed_sub')}</span>
         </div>
       </div>
 
       <div className="section-heading">
-        <h2>Quick Actions</h2>
-        <p>Choose a tool to get started.</p>
+        <h2>{t('dashboard.quick_actions')}</h2>
+        <p>{t('dashboard.quick_actions_sub')}</p>
       </div>
 
       <div className="actions-grid">
@@ -69,9 +116,9 @@ function Dashboard({ onNavigate }: DashboardProps) {
           onClick={() => onNavigate('Scam Scanner')}
         >
           <MessageSquareWarning size={30} />
-          <h3>Scan a Message</h3>
-          <p>Check suspicious SMS messages, emails, or chat messages.</p>
-          <span>Start scanning <ArrowRight size={16} /></span>
+          <h3>{t('dashboard.scan_msg_title')}</h3>
+          <p>{t('dashboard.scan_msg_desc')}</p>
+          <span>{t('dashboard.scan_msg_btn')} <ArrowRight size={16} /></span>
         </button>
 
         <button
@@ -79,9 +126,9 @@ function Dashboard({ onNavigate }: DashboardProps) {
           onClick={() => onNavigate('Link Checker')}
         >
           <Link size={30} />
-          <h3>Check a Link</h3>
-          <p>Inspect a URL for common warning signs.</p>
-          <span>Check link <ArrowRight size={16} /></span>
+          <h3>{t('dashboard.check_link_title')}</h3>
+          <p>{t('dashboard.check_link_desc')}</p>
+          <span>{t('dashboard.check_link_btn')} <ArrowRight size={16} /></span>
         </button>
 
         <button
@@ -89,20 +136,17 @@ function Dashboard({ onNavigate }: DashboardProps) {
           onClick={() => onNavigate('Human Review')}
         >
           <ShieldCheck size={30} />
-          <h3>Human Review</h3>
-          <p>Review flagged cases and record a human decision.</p>
-          <span>Review cases <ArrowRight size={16} /></span>
+          <h3>{t('dashboard.human_review_title')}</h3>
+          <p>{t('dashboard.human_review_desc')}</p>
+          <span>{t('dashboard.human_review_btn')} <ArrowRight size={16} /></span>
         </button>
       </div>
 
       <div className="safety-banner">
         <AlertTriangle size={25} />
         <div>
-          <h3>Stay Safe Online</h3>
-          <p>
-            Never share your OTP, PIN, password, or banking details
-            with someone who contacts you unexpectedly.
-          </p>
+          <h3>{t('dashboard.safety_tip_title')}</h3>
+          <p>{t('dashboard.safety_tip_desc')}</p>
         </div>
       </div>
     </div>

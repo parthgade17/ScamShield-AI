@@ -1,199 +1,228 @@
-import { useState } from 'react'
+
+import { useEffect, useState } from 'react'
 import {
   ShieldCheck,
   LayoutDashboard,
   ScanSearch,
-  Link,
-  ClipboardCheck,
   History,
   Settings as SettingsIcon,
-  Bell,
   Menu,
   X,
-  ChevronRight,
-  LogOut,
+  Sun,
+  Moon,
 } from 'lucide-react'
 
 import Dashboard from './components/pages/Dashboard'
-import ScamScanner from './components/pages/ScamScanner'
-import LinkChecker from './components/pages/LinkChecker'
-import HumanReview from './components/pages/HumanReview'
-import CaseHistory from './components/pages/CaseHistory'
+import Scanner from './components/pages/Scanner'
+import HistoryPage from './components/pages/History'
 import Settings from './components/pages/Settings'
 
 import './App.css'
 
+type Page = 'dashboard' | 'scanner' | 'history' | 'settings'
+
 const navigation = [
-  { name: 'Dashboard', icon: LayoutDashboard },
-  { name: 'Scam Scanner', icon: ScanSearch },
-  { name: 'Link Checker', icon: Link },
-  { name: 'Human Review', icon: ClipboardCheck },
-  { name: 'Case History', icon: History },
-  { name: 'Settings', icon: SettingsIcon },
+  {
+    id: 'dashboard' as Page,
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+  },
+  {
+    id: 'scanner' as Page,
+    label: 'Scam Scanner',
+    icon: ScanSearch,
+  },
+  {
+    id: 'history' as Page,
+    label: 'Scan History',
+    icon: History,
+  },
+  {
+    id: 'settings' as Page,
+    label: 'Settings',
+    icon: SettingsIcon,
+  },
 ]
 
 function App() {
-  const [activePage, setActivePage] = useState('Dashboard')
+  const [activePage, setActivePage] = useState<Page>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  function navigateTo(page: string) {
+  // Read the saved theme when the app starts.
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('scamshield-theme') === 'dark'
+    } catch {
+      return false
+    }
+  })
+
+  // Apply the theme and save it whenever darkMode changes.
+  useEffect(() => {
+    const theme = darkMode ? 'dark' : 'light'
+
+    document.documentElement.setAttribute('data-theme', theme)
+    document.documentElement.style.colorScheme = theme
+
+    try {
+      localStorage.setItem('scamshield-theme', theme)
+    } catch (error) {
+      console.error('[ScamShield] Unable to save theme:', error)
+    }
+  }, [darkMode])
+
+  function navigateTo(page: Page) {
     setActivePage(page)
     setSidebarOpen(false)
   }
 
   function renderPage() {
     switch (activePage) {
-      case 'Scam Scanner':
-        return <ScamScanner />
+      case 'dashboard':
+        return <Dashboard />
 
-      case 'Link Checker':
-        return <LinkChecker />
+      case 'scanner':
+        return <Scanner />
 
-      case 'Human Review':
-        return <HumanReview />
+      case 'history':
+        return <HistoryPage />
 
-      case 'Case History':
-        return <CaseHistory />
-
-      case 'Settings':
-        return <Settings />
+      case 'settings':
+        return (
+          <Settings
+            darkMode={darkMode}
+            onDarkModeChange={setDarkMode}
+          />
+        )
 
       default:
-        return <Dashboard onNavigate={navigateTo} />
+        return <Dashboard />
     }
   }
 
   return (
-    <div className="app-layout">
+    <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'}`}>
       {sidebarOpen && (
         <button
+          type="button"
           className="sidebar-overlay"
-          aria-label="Close navigation"
+          aria-label="Close navigation menu"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
-        <div className="brand">
-          <div className="brand-icon">
-            <ShieldCheck size={27} />
-          </div>
+        <div className="sidebar-header">
+          <div className="brand">
+            <div className="brand-icon">
+              <ShieldCheck size={28} />
+            </div>
 
-          <div className="brand-text">
-            <h2>ScamShield<span> AI</span></h2>
-            <p>DIGITAL SAFETY PLATFORM</p>
+            <div className="brand-text">
+              <h2>ScamShield</h2>
+              <span>AI Protection</span>
+            </div>
           </div>
 
           <button
-            className="mobile-close"
+            type="button"
+            className="sidebar-close"
             aria-label="Close sidebar"
             onClick={() => setSidebarOpen(false)}
           >
-            <X size={21} />
+            <X size={22} />
           </button>
         </div>
 
-        <div className="sidebar-label">MAIN MENU</div>
+        <nav className="sidebar-nav" aria-label="Main navigation">
+          <p className="nav-label">MENU</p>
 
-        <nav className="sidebar-nav">
           {navigation.map((item) => {
             const Icon = item.icon
-            const active = activePage === item.name
+            const isActive = activePage === item.id
 
             return (
               <button
-                key={item.name}
-                className={`nav-item ${active ? 'nav-active' : ''}`}
-                onClick={() => navigateTo(item.name)}
+                key={item.id}
+                type="button"
+                className={`nav-item ${isActive ? 'active' : ''}`}
+                onClick={() => navigateTo(item.id)}
+                aria-current={isActive ? 'page' : undefined}
               >
                 <Icon size={20} />
-                <span>{item.name}</span>
-
-                {active && <ChevronRight size={17} />}
+                <span>{item.label}</span>
               </button>
             )
           })}
         </nav>
 
-        <div className="sidebar-spacer" />
-
-        <div className="sidebar-safety">
-          <ShieldCheck size={25} />
-          <h3>Stay Protected</h3>
-          <p>
-            Stay alert. Verify unexpected requests before sharing
-            personal or financial information.
-          </p>
-        </div>
-
-        <div className="sidebar-footer">
-          <div className="user-avatar">S</div>
-
-          <div className="user-info">
-            <h4>ScamShield User</h4>
-            <p>Standard Account</p>
+        <div className="sidebar-bottom">
+          <div className="protection-status">
+            <span className="status-dot" />
+            <div>
+              <strong>Protection Active</strong>
+              <p>Scam detection ready</p>
+            </div>
           </div>
 
-          <LogOut size={18} />
+          <div className="sidebar-footer">
+            <ShieldCheck size={16} />
+            <span>ScamShield AI</span>
+          </div>
         </div>
       </aside>
 
-      <main className="main-area">
+      <div className="main-wrapper">
         <header className="topbar">
           <div className="topbar-left">
             <button
-              className="mobile-menu"
-              aria-label="Open navigation"
+              type="button"
+              className="menu-toggle"
+              aria-label="Open navigation menu"
               onClick={() => setSidebarOpen(true)}
             >
-              <Menu size={23} />
+              <Menu size={22} />
             </button>
 
-            <div>
-              <p className="breadcrumb">Workspace / {activePage}</p>
-              <h2>{activePage}</h2>
+            <div className="breadcrumb">
+              <span>ScamShield</span>
+              <span className="breadcrumb-separator">/</span>
+              <strong>
+                {navigation.find((item) => item.id === activePage)?.label}
+              </strong>
             </div>
           </div>
 
           <div className="topbar-right">
-            <div className="system-status">
-              <span className="status-dot" />
-              Demo Mode
-            </div>
-
             <button
-              className="notification-button"
-              aria-label="Notifications"
-              title="Demo notifications"
-              onClick={() =>
-                window.alert(
-                  'You are viewing ScamShield AI demo mode. No new notifications are available.',
-                )
+              type="button"
+              className="theme-toggle"
+              aria-label={
+                darkMode ? 'Switch to light mode' : 'Switch to dark mode'
               }
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              onClick={() => setDarkMode((previous) => !previous)}
             >
-              <Bell size={21} />
-              <span />
+              {darkMode ? <Sun size={19} /> : <Moon size={19} />}
+              <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
             </button>
 
-            <button
-              className="topbar-avatar"
-              aria-label="Open settings"
-              onClick={() => navigateTo('Settings')}
-            >
-              S
-            </button>
+            <div className="user-avatar" title="ScamShield User">
+              SU
+            </div>
           </div>
         </header>
 
-        <div className="page-content">{renderPage()}</div>
+        <main className="main-content" key={activePage}>
+          {renderPage()}
+        </main>
 
         <footer className="app-footer">
           <p>
-            © 2026 ScamShield AI · Built for safer digital commerce
+            © {new Date().getFullYear()} ScamShield AI. Stay safe online.
           </p>
-          <p>AI-assisted screening · Human-verified response</p>
         </footer>
-      </main>
+      </div>
     </div>
   )
 }

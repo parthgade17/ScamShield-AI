@@ -888,3 +888,132 @@
     height: 34px;
   }
 }
+
+/* ScamShield AI — Dark Mode Theme */
+
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  background-color: #0b1120 !important;
+  color: #e5e7eb;
+}
+
+html[data-theme="dark"] #root {
+  min-height: 100vh;
+  background-color: #0b1120;
+}
+
+html[data-theme="dark"] .app-layout {
+  background-color: #0b1120;
+  color: #e5e7eb;
+}
+
+html[data-theme="dark"] .main-area,
+html[data-theme="dark"] .page-content {
+  background-color: #0b1120;
+  color: #e5e7eb;
+}
+
+html[data-theme="dark"] .sidebar,
+html[data-theme="dark"] .topbar {
+  background-color: #111827;
+  color: #f3f4f6;
+  border-color: #273449;
+}
+
+html[data-theme="dark"] .sidebar h2,
+html[data-theme="dark"] .sidebar h3,
+html[data-theme="dark"] .sidebar h4,
+html[data-theme="dark"] .topbar h2,
+html[data-theme="dark"] .brand-text p,
+html[data-theme="dark"] .user-info p {
+  color: #e5e7eb;
+}
+
+html[data-theme="dark"] .breadcrumb,
+html[data-theme="dark"] .sidebar-label,
+html[data-theme="dark"] .app-footer {
+  color: #9ca3af;
+}
+
+html[data-theme="dark"] .nav-item {
+  color: #cbd5e1;
+}
+
+html[data-theme="dark"] .nav-item:hover,
+html[data-theme="dark"] .nav-item.nav-active {
+  background-color: #1e293b;
+  color: #93c5fd;
+}
+
+html[data-theme="dark"] .sidebar-safety,
+html[data-theme="dark"] .system-status {
+  background-color: #1e293b;
+  color: #e5e7eb;
+  border-color: #334155;
+}
+
+html[data-theme="dark"] .sidebar-safety p {
+  color: #cbd5e1;
+}
+
+html[data-theme="dark"] .page-content > *,
+html[data-theme="dark"] .page-content section,
+html[data-theme="dark"] .page-content article,
+html[data-theme="dark"] .page-content .card,
+html[data-theme="dark"] .page-content [class*="card"],
+html[data-theme="dark"] .page-content [class*="panel"],
+html[data-theme="dark"] .page-content [class*="widget"] {
+  border-color: #334155;
+}
+
+html[data-theme="dark"] .page-content section,
+html[data-theme="dark"] .page-content article,
+html[data-theme="dark"] .page-content .card,
+html[data-theme="dark"] .page-content [class*="card"],
+html[data-theme="dark"] .page-content [class*="panel"],
+html[data-theme="dark"] .page-content [class*="widget"] {
+  background-color: #111827;
+  color: #e5e7eb;
+}
+
+html[data-theme="dark"] .page-content h1,
+html[data-theme="dark"] .page-content h2,
+html[data-theme="dark"] .page-content h3,
+html[data-theme="dark"] .page-content h4,
+html[data-theme="dark"] .page-content label {
+  color: #f3f4f6;
+}
+
+html[data-theme="dark"] .page-content p,
+html[data-theme="dark"] .page-content small {
+  color: #cbd5e1;
+}
+
+html[data-theme="dark"] .page-content input,
+html[data-theme="dark"] .page-content select,
+html[data-theme="dark"] .page-content textarea {
+  background-color: #0f172a;
+  color: #f3f4f6;
+  border-color: #475569;
+}
+
+html[data-theme="dark"] .page-content input::placeholder,
+html[data-theme="dark"] .page-content textarea::placeholder {
+  color: #94a3b8;
+}
+
+html[data-theme="dark"] .page-content table th,
+html[data-theme="dark"] .page-content table td {
+  border-color: #334155;
+  color: #e5e7eb;
+}
+
+html[data-theme="dark"] .notification-button {
+  background-color: #1e293b;
+  color: #e5e7eb;
+  border-color: #334155;
+}
+
+html[data-theme="dark"] .app-footer {
+  border-color: #273449;
+}

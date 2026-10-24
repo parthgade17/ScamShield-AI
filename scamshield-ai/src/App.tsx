@@ -1,4 +1,5 @@
-﻿import { useState } from 'react'
+
+import { useEffect, useState } from 'react'
 import {
   ShieldCheck,
   LayoutDashboard,
@@ -12,6 +13,9 @@ import {
   X,
   ChevronRight,
   LogOut,
+  Sun,
+  Moon,
+  Globe,
 } from 'lucide-react'
 
 import Dashboard from './components/pages/Dashboard'
@@ -20,21 +24,43 @@ import LinkChecker from './components/pages/LinkChecker'
 import HumanReview from './components/pages/HumanReview'
 import CaseHistory from './components/pages/CaseHistory'
 import Settings from './components/pages/Settings'
+import { useLanguage, type Language } from './context/LanguageContext'
 
 import './App.css'
 
-const navigation = [
-  { name: 'Dashboard', icon: LayoutDashboard },
-  { name: 'Scam Scanner', icon: ScanSearch },
-  { name: 'Link Checker', icon: Link },
-  { name: 'Human Review', icon: ClipboardCheck },
-  { name: 'Case History', icon: History },
-  { name: 'Settings', icon: SettingsIcon },
+const navItemsConfig = [
+  { id: 'Dashboard', key: 'nav.dashboard', icon: LayoutDashboard },
+  { id: 'Scam Scanner', key: 'nav.scam_scanner', icon: ScanSearch },
+  { id: 'Link Checker', key: 'nav.link_checker', icon: Link },
+  { id: 'Human Review', key: 'nav.human_review', icon: ClipboardCheck },
+  { id: 'Case History', key: 'nav.case_history', icon: History },
+  { id: 'Settings', key: 'nav.settings', icon: SettingsIcon },
 ]
 
 function App() {
+  const { language, setLanguage, t } = useLanguage()
   const [activePage, setActivePage] = useState('Dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('scamshield-theme') === 'dark'
+  })
+
+  useEffect(() => {
+    localStorage.setItem(
+      'scamshield-theme',
+      darkMode ? 'dark' : 'light',
+    )
+
+    document.documentElement.setAttribute(
+      'data-theme',
+      darkMode ? 'dark' : 'light',
+    )
+
+    document.documentElement.style.colorScheme = darkMode
+      ? 'dark'
+      : 'light'
+  }, [darkMode])
 
   function navigateTo(page: string) {
     setActivePage(page)
@@ -56,7 +82,12 @@ function App() {
         return <CaseHistory />
 
       case 'Settings':
-        return <Settings />
+        return (
+          <Settings
+            darkMode={darkMode}
+            onDarkModeChange={setDarkMode}
+          />
+        )
 
       default:
         return <Dashboard onNavigate={navigateTo} />
@@ -64,7 +95,7 @@ function App() {
   }
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${darkMode ? 'dark-mode' : 'light-mode'}`}>
       {sidebarOpen && (
         <button
           className="sidebar-overlay"
@@ -80,7 +111,9 @@ function App() {
           </div>
 
           <div className="brand-text">
-            <h2>ScamShield<span> AI</span></h2>
+            <h2>
+              ScamShield<span> AI</span>
+            </h2>
             <p>DIGITAL SAFETY PLATFORM</p>
           </div>
 
@@ -93,22 +126,21 @@ function App() {
           </button>
         </div>
 
-        <div className="sidebar-label">MAIN MENU</div>
+        <div className="sidebar-label">{t('nav.main_menu')}</div>
 
         <nav className="sidebar-nav">
-          {navigation.map((item) => {
+          {navItemsConfig.map((item) => {
             const Icon = item.icon
-            const active = activePage === item.name
+            const active = activePage === item.id
 
             return (
               <button
-                key={item.name}
+                key={item.id}
                 className={`nav-item ${active ? 'nav-active' : ''}`}
-                onClick={() => navigateTo(item.name)}
+                onClick={() => navigateTo(item.id)}
               >
                 <Icon size={20} />
-                <span>{item.name}</span>
-
+                <span>{t(item.key)}</span>
                 {active && <ChevronRight size={17} />}
               </button>
             )
@@ -119,11 +151,8 @@ function App() {
 
         <div className="sidebar-safety">
           <ShieldCheck size={25} />
-          <h3>Stay Protected</h3>
-          <p>
-            Stay alert. Verify unexpected requests before sharing
-            personal or financial information.
-          </p>
+          <h3>{t('nav.stay_protected')}</h3>
+          <p>{t('nav.stay_protected_desc')}</p>
         </div>
 
         <div className="sidebar-footer">
@@ -131,7 +160,7 @@ function App() {
 
           <div className="user-info">
             <h4>ScamShield User</h4>
-            <p>Standard Account</p>
+            <p>{t('nav.standard_account')}</p>
           </div>
 
           <LogOut size={18} />
@@ -150,15 +179,48 @@ function App() {
             </button>
 
             <div>
-              <p className="breadcrumb">Workspace / {activePage}</p>
-              <h2>{activePage}</h2>
+              <p className="breadcrumb">Workspace / {t(`nav.${activePage.toLowerCase().replace(' ', '_')}`)}</p>
+              <h2>{t(`nav.${activePage.toLowerCase().replace(' ', '_')}`)}</h2>
             </div>
           </div>
 
           <div className="topbar-right">
+            {/* Multilingual Selector Pill */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'var(--card-background, #f3f4f6)',
+                padding: '5px 10px',
+                borderRadius: 20,
+                border: '1px solid var(--border-color, #e5e7eb)',
+              }}
+            >
+              <Globe size={16} />
+              <select
+                aria-label="Choose Language"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  outline: 'none',
+                  color: 'inherit',
+                }}
+              >
+                <option value="English">English</option>
+                <option value="Hindi">हिन्दी (Hindi)</option>
+                <option value="Marathi">मराठी (Marathi)</option>
+              </select>
+            </div>
+
             <div className="system-status">
               <span className="status-dot" />
-              Demo Mode
+              {t('nav.demo_mode')}
             </div>
 
             <button
@@ -167,12 +229,21 @@ function App() {
               title="Demo notifications"
               onClick={() =>
                 window.alert(
-                  'You are viewing ScamShield AI demo mode. No new notifications are available.',
+                  'ScamShield AI Live Protection Active.',
                 )
               }
             >
               <Bell size={21} />
               <span />
+            </button>
+
+            <button
+              className="notification-button"
+              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              onClick={() => setDarkMode((current) => !current)}
+            >
+              {darkMode ? <Sun size={21} /> : <Moon size={21} />}
             </button>
 
             <button
@@ -188,10 +259,8 @@ function App() {
         <div className="page-content">{renderPage()}</div>
 
         <footer className="app-footer">
-          <p>
-            Â© 2026 ScamShield AI Â· Built for safer digital commerce
-          </p>
-          <p>AI-assisted screening Â· Human-verified response</p>
+          <p>{t('footer.copyright')}</p>
+          <p>{t('footer.tagline')}</p>
         </footer>
       </main>
     </div>

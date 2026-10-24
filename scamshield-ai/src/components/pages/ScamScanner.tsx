@@ -1,114 +1,602 @@
-import { useState } from 'react'
-import { ScanSearch, AlertTriangle, ShieldCheck } from 'lucide-react'
+import { useState, useRef } from 'react'
+import {
+  ScanSearch,
+  AlertTriangle,
+  ShieldCheck,
+  LoaderCircle,
+  Sparkles,
+  Info,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
+  Image as ImageIcon,
+  FileText,
+  ThumbsUp,
+  ThumbsDown,
+  Upload,
+} from 'lucide-react'
+import { API_BASE_URL } from '../../api'
+import { useLanguage } from '../../context/LanguageContext'
 
-function ScamScanner() {
+type Indicator = {
+  source?: string
+  category?: string
+  title?: string
+  description?: string
+  message?: string
+  indicator?: string
+  severity?: string
+}
+
+type ScanResponse = {
+  scan_id?: number
+  ai_score?: number
+  rule_based_score?: number
+  risk_score?: number
+  risk_level?: string
+  explanation?: string
+  indicators?: (Indicator | string)[]
+  recommendations?: string[]
+  ai_status?: string
+  ai_model?: string
+  detection_method?: string
+  extracted_text?: string
+}
+
+const TRIGGER_REGEX = /\b(urgent|immediately|act now|within \d+ hours?|account blocked|account suspended|last warning|will be blocked|expires today|otp|one.time password|cvv|pin|bank password|upi pin|verification code|send money|pay immediately|processing fee|advance payment|claim fee|refund fee|transfer funds|pay to receive|prize fee|kyc|electricity|free gift)\b/gi
+
+function riskColor(level?: string) {
+  if (level === 'High') return '#ef4444'
+  if (level === 'Medium') return '#f59e0b'
+  return '#10b981'
+}
+
+export default function ScamScanner() {
+  const { language, t } = useLanguage()
+
+  const [scanMode, setScanMode] = useState<'text' | 'image'>('text')
   const [message, setMessage] = useState('')
-  const [result, setResult] = useState('')
-  const [warnings, setWarnings] = useState<string[]>([])
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [imageFileName, setImageFileName] = useState('')
 
-  function scanMessage() {
-    if (!message.trim()) {
-      setResult('Please enter a message to scan.')
-      setWarnings([])
+  const [scan, setScan] = useState<ScanResponse | null>(null)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  // Voice Speech-to-Text State
+  const [isListening, setIsListening] = useState(false)
+  const recognitionRef = useRef<any>(null)
+
+  // Voice Text-to-Speech State
+  const [isSpeaking, setIsSpeaking] = useState(false)
+
+  // User feedback state
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState<string | null>(null)
+
+  // --- Voice Input (Speech Recognition) ---
+  function toggleVoiceInput() {
+    if (isListening) {
+      if (recognitionRef.current) recognitionRef.current.stop()
+      setIsListening(false)
       return
     }
 
-    const detected: string[] = []
-    const text = message.toLowerCase()
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
 
-    if (/otp|password|pin|cvv|verification code/.test(text)) {
-      detected.push('Requests sensitive information')
+    if (!SpeechRecognition) {
+      setError('Speech recognition is not supported in this browser. Please use Google Chrome.')
+      return
     }
 
-    if (/urgent|immediately|right now|act fast|within 24 hours/.test(text)) {
-      detected.push('Uses urgency or pressure')
-    }
+    try {
+      const recognition = new SpeechRecognition()
+      recognitionRef.current = recognition
+      recognition.continuous = false
+      recognition.interimResults = false
 
-    if (/account blocked|account suspended|account will close/.test(text)) {
-      detected.push('Threatens account suspension')
-    }
+      // Match language to selected rural/regional language
+      if (language === 'Hindi') {
+        recognition.lang = 'hi-IN'
+      } else if (language === 'Marathi') {
+        recognition.lang = 'mr-IN'
+      } else {
+        recognition.lang = 'en-IN'
+      }
 
-    if (/send money|transfer money|pay now|processing fee/.test(text)) {
-      detected.push('Requests payment or money transfer')
-    }
+      recognition.onstart = () => {
+        setIsListening(true)
+        setError('')
+      }
 
-    if (/http:\/\/|https?:\/\/|www\./.test(text)) {
-      detected.push('Contains a web link')
-    }
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript
+        setMessage((prev) => (prev ? `${prev} ${transcript}` : transcript))
+      }
 
-    setWarnings(detected)
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error)
+        setIsListening(false)
+      }
 
-    if (detected.length >= 2) {
-      setResult('High Risk: Multiple warning signs detected.')
-    } else if (detected.length === 1) {
-      setResult('Needs Caution: A warning sign was detected.')
-    } else {
-      setResult('No obvious warning signs found.')
+      recognition.onend = () => {
+        setIsListening(false)
+      }
+
+      recognition.start()
+    } catch (err) {
+      console.error('Failed to start speech recognition:', err)
+      setIsListening(false)
     }
   }
 
+  // --- Voice Read Aloud (Text-to-Speech) ---
+  function toggleReadAloud() {
+    if (!scan) return
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+      return
+    }
+
+    const textToRead = `${t('scanner.risk_level')}: ${scan.risk_level}. ${scan.explanation || ''}. ${
+      scan.recommendations && scan.recommendations.length > 0 ? scan.recommendations[0] : ''
+    }`
+
+    const utterance = new SpeechSynthesisUtterance(textToRead)
+
+    if (language === 'Hindi') {
+      utterance.lang = 'hi-IN'
+    } else if (language === 'Marathi') {
+      utterance.lang = 'mr-IN'
+    } else {
+      utterance.lang = 'en-IN'
+    }
+
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
+
+    window.speechSynthesis.cancel()
+    setIsSpeaking(true)
+    window.speechSynthesis.speak(utterance)
+  }
+
+  // --- Image Upload Handler ---
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file (PNG, JPG, WEBP).')
+      return
+    }
+
+    setImageFileName(file.name)
+    const reader = new FileReader()
+    reader.onload = () => {
+      setSelectedImage(reader.result as string)
+      setError('')
+      setScan(null)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // --- Scan Message (Text) ---
+  async function scanTextMessage() {
+    if (!message.trim()) {
+      setError('Please paste a message before scanning.')
+      setScan(null)
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    setScan(null)
+    setFeedbackSubmitted(null)
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: message.trim() }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(data.error || 'Scan request failed.')
+      }
+
+      setScan(data as ScanResponse)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Scan failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // --- Scan Screenshot / Image ---
+  async function scanImageScreenshot() {
+    if (!selectedImage) {
+      setError('Please choose or drop an image screenshot first.')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    setScan(null)
+    setFeedbackSubmitted(null)
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/scan/image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: selectedImage }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(data.error || 'Vision analysis failed.')
+      }
+
+      setScan(data as ScanResponse)
+      if (data.extracted_text) {
+        setMessage(data.extracted_text)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Image analysis failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // --- Submit User Accuracy Feedback ---
+  async function submitFeedback(feedback: 'accurate' | 'inaccurate') {
+    if (!scan?.scan_id) return
+    try {
+      await fetch(`${API_BASE_URL}/api/scan/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scan_id: scan.scan_id,
+          feedback,
+        }),
+      })
+      setFeedbackSubmitted(feedback)
+    } catch (err) {
+      console.error('Feedback error:', err)
+    }
+  }
+
+  // Highlight triggered scam words in user text
+  function renderHighlightedText(text: string) {
+    if (!text) return null
+    const parts = text.split(TRIGGER_REGEX)
+    return (
+      <div style={{ lineHeight: 1.7, fontSize: '0.98rem' }}>
+        {parts.map((part, index) => {
+          const isTrigger = TRIGGER_REGEX.test(part)
+          TRIGGER_REGEX.lastIndex = 0
+          if (isTrigger) {
+            return (
+              <mark
+                key={index}
+                style={{
+                  backgroundColor: '#fee2e2',
+                  color: '#b91c1c',
+                  fontWeight: 600,
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  border: '1px solid #fca5a5',
+                  margin: '0 2px',
+                }}
+              >
+                {part}
+              </mark>
+            )
+          }
+          return <span key={index}>{part}</span>
+        })}
+      </div>
+    )
+  }
+
   return (
-    <div className="page-container">
+    <div className="page-container scanner-page">
       <div className="page-title">
         <ScanSearch size={32} />
         <div>
-          <h1>Scam Scanner</h1>
-          <p>Analyze suspicious messages for common scam indicators.</p>
+          <h1>{t('scanner.title')}</h1>
+          <p>{t('scanner.subtitle')}</p>
         </div>
       </div>
 
       <div className="content-card">
-        <label htmlFor="message">
-          Paste your suspicious message
-        </label>
+        {/* Mode Tab Switcher */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 18, borderBottom: '1px solid var(--border-color, #e5e7eb)', paddingBottom: 10 }}>
+          <button
+            type="button"
+            className="secondary-button"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              border: scanMode === 'text' ? '2px solid var(--primary, #2563eb)' : '1px solid #e5e7eb',
+              fontWeight: scanMode === 'text' ? 700 : 500,
+              borderRadius: 8,
+              padding: '8px 16px',
+              cursor: 'pointer',
+            }}
+            onClick={() => setScanMode('text')}
+          >
+            <FileText size={18} />
+            {t('scanner.tab_text')}
+          </button>
 
-        <textarea
-          id="message"
-          rows={7}
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          placeholder="Example: Your bank account will be blocked. Verify your account immediately..."
-        />
+          <button
+            type="button"
+            className="secondary-button"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              border: scanMode === 'image' ? '2px solid var(--primary, #2563eb)' : '1px solid #e5e7eb',
+              fontWeight: scanMode === 'image' ? 700 : 500,
+              borderRadius: 8,
+              padding: '8px 16px',
+              cursor: 'pointer',
+            }}
+            onClick={() => setScanMode('image')}
+          >
+            <ImageIcon size={18} />
+            {t('scanner.tab_image')}
+          </button>
+        </div>
 
-        <button className="primary-button" onClick={scanMessage}>
-          <ScanSearch size={18} />
-          Scan Message
-        </button>
+        {/* Tab 1: Text Scanning */}
+        {scanMode === 'text' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <label htmlFor="message-input" style={{ fontWeight: 600 }}>
+                {t('scanner.paste_label')}
+              </label>
 
-        {result && (
-          <div className="result-box">
-            <h3>
-              {warnings.length >= 2 ? (
-                <AlertTriangle size={22} />
-              ) : (
-                <ShieldCheck size={22} />
-              )}
-              Scan Result
-            </h3>
+              {/* Voice Speech-to-Text Button */}
+              <button
+                type="button"
+                onClick={toggleVoiceInput}
+                title={isListening ? t('scanner.voice_listening') : t('scanner.voice_listen')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '5px 12px',
+                  borderRadius: 20,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: isListening ? '1px solid #ef4444' : '1px solid var(--border-color, #d1d5db)',
+                  background: isListening ? '#fee2e2' : 'var(--card-background, #f9fafb)',
+                  color: isListening ? '#b91c1c' : 'inherit',
+                }}
+              >
+                {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                {isListening ? t('scanner.voice_listening') : t('scanner.voice_listen')}
+              </button>
+            </div>
 
-            <p>{result}</p>
+            <textarea
+              id="message-input"
+              rows={5}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={t('scanner.placeholder')}
+              style={{ width: '100%', marginBottom: 14 }}
+            />
 
-            {warnings.length > 0 && (
-              <>
-                <h4>Warning Signs</h4>
-                <ul>
-                  {warnings.map((warning) => (
-                    <li key={warning}>{warning}</li>
-                  ))}
-                </ul>
-              </>
+            <button
+              className="primary-button"
+              disabled={loading}
+              onClick={scanTextMessage}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+            >
+              {loading ? <LoaderCircle size={18} className="spinner" /> : <Sparkles size={18} />}
+              {loading ? t('scanner.scanning') : t('scanner.scan_btn')}
+            </button>
+          </div>
+        )}
+
+        {/* Tab 2: Screenshot & Image Scan */}
+        {scanMode === 'image' && (
+          <div>
+            <div
+              style={{
+                border: '2px dashed var(--border-color, #d1d5db)',
+                borderRadius: 12,
+                padding: '30px 20px',
+                textAlign: 'center',
+                background: 'var(--card-background, #f9fafb)',
+                marginBottom: 16,
+                cursor: 'pointer',
+              }}
+              onClick={() => document.getElementById('image-file-input')?.click()}
+            >
+              <Upload size={38} style={{ margin: '0 auto 10px', color: 'var(--primary, #2563eb)' }} />
+              <p style={{ fontWeight: 600, marginBottom: 4 }}>
+                {imageFileName ? `Selected: ${imageFileName}` : t('scanner.image_upload_prompt')}
+              </p>
+              <p style={{ fontSize: 13, color: '#6b7280' }}>Supports WhatsApp chats, SMS screenshots, QR codes, payment receipts (PNG, JPG)</p>
+              <input
+                id="image-file-input"
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleImageUpload}
+              />
+            </div>
+
+            {selectedImage && (
+              <div style={{ marginBottom: 16, textAlign: 'center' }}>
+                <img
+                  src={selectedImage}
+                  alt="Screenshot preview"
+                  style={{ maxHeight: 220, borderRadius: 8, border: '1px solid #e5e7eb' }}
+                />
+              </div>
             )}
 
-            <p className="disclaimer">
-              This is a basic rule-based demonstration, not a
-              verified AI fraud detector. A message with no detected
-              warning signs may still be fraudulent.
-            </p>
+            <button
+              className="primary-button"
+              disabled={loading || !selectedImage}
+              onClick={scanImageScreenshot}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+            >
+              {loading ? <LoaderCircle size={18} className="spinner" /> : <Sparkles size={18} />}
+              {loading ? t('scanner.scanning') : t('scanner.image_btn')}
+            </button>
+          </div>
+        )}
+
+        {/* Error notification */}
+        {error && (
+          <div style={{ marginTop: 16, padding: '10px 14px', borderRadius: 8, background: '#fee2e2', color: '#991b1b', border: '1px solid #f87171' }}>
+            {error}
+          </div>
+        )}
+
+        {/* Results Waterfall Box */}
+        {scan && (
+          <div className="result-box" style={{ marginTop: 24, borderTop: '2px solid #e5e7eb', paddingTop: 20 }}>
+            {/* Header with Read-Aloud Voice button */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {(scan.risk_score ?? 0) >= 60 ? (
+                  <AlertTriangle size={30} color={riskColor(scan.risk_level)} />
+                ) : (
+                  <ShieldCheck size={30} color={riskColor(scan.risk_level)} />
+                )}
+                <div>
+                  <h3 style={{ margin: 0 }}>{t('scanner.result_title')}</h3>
+                  <small style={{ color: '#6b7280' }}>{t('scanner.result_completed')}</small>
+                </div>
+              </div>
+
+              {/* Voice Read Aloud Button */}
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={toggleReadAloud}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 14px',
+                  borderRadius: 20,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {isSpeaking ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                {isSpeaking ? 'Stop Reading' : t('scanner.listen_verdict')}
+              </button>
+            </div>
+
+            {/* Score Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 20 }}>
+              <div style={{ padding: 14, borderRadius: 10, background: 'var(--card-background, #f8fafc)', border: '1px solid #e5e7eb' }}>
+                <p style={{ margin: '0 0 6px', fontSize: 13, color: '#6b7280' }}>{t('scanner.risk_level')}</p>
+                <strong style={{ color: riskColor(scan.risk_level), fontSize: 20 }}>{scan.risk_level}</strong>
+              </div>
+
+              <div style={{ padding: 14, borderRadius: 10, background: 'var(--card-background, #f8fafc)', border: '1px solid #e5e7eb' }}>
+                <p style={{ margin: '0 0 6px', fontSize: 13, color: '#6b7280' }}>{t('scanner.risk_score')}</p>
+                <strong style={{ fontSize: 20 }}>{scan.risk_score ?? 0} / 100</strong>
+              </div>
+
+              <div style={{ padding: 14, borderRadius: 10, background: 'var(--card-background, #f8fafc)', border: '1px solid #e5e7eb' }}>
+                <p style={{ margin: '0 0 6px', fontSize: 13, color: '#6b7280' }}>{t('scanner.detection_method')}</p>
+                <strong style={{ fontSize: 14 }}>{scan.detection_method || 'rule_based+gemini'}</strong>
+              </div>
+            </div>
+
+            {/* Feature 5: Plain language "Why was this flagged?" */}
+            {scan.explanation && (
+              <div style={{ padding: '14px 16px', borderRadius: 10, background: 'rgba(239, 68, 68, 0.06)', borderLeft: '4px solid #ef4444', marginBottom: 18 }}>
+                <h4 style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Info size={18} color="#ef4444" />
+                  {t('scanner.why_summary')}
+                </h4>
+                <p style={{ margin: 0, lineHeight: 1.5 }}>{scan.explanation}</p>
+              </div>
+            )}
+
+            {/* Feature 5: Word Highlighting in original message */}
+            {message && (
+              <div style={{ marginBottom: 18, padding: 14, borderRadius: 10, background: 'var(--card-background, #f8fafc)', border: '1px solid #e5e7eb' }}>
+                <h4 style={{ margin: '0 0 10px', fontSize: '0.92rem', color: '#6b7280' }}>
+                  {t('scanner.highlighted_text')}:
+                </h4>
+                {renderHighlightedText(message)}
+              </div>
+            )}
+
+            {/* Threat Indicators */}
+            {scan.indicators && scan.indicators.length > 0 && (
+              <div style={{ marginBottom: 18 }}>
+                <h4>{t('scanner.indicators_title')}</h4>
+                <ul>
+                  {scan.indicators.map((item, i) => (
+                    <li key={i}>{typeof item === 'string' ? item : item.description || item.title || item.indicator}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Safety Recommendations */}
+            {scan.recommendations && scan.recommendations.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <h4>{t('scanner.recommendations_title')}</h4>
+                <ul style={{ paddingLeft: 20 }}>
+                  {scan.recommendations.map((rec, i) => (
+                    <li key={i} style={{ marginBottom: 4 }}>{rec}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Feature 4: User Feedback Button ("Was this accurate?") */}
+            <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+              <span style={{ fontSize: 13, color: '#6b7280' }}>{t('scanner.feedback_title')}</span>
+              {feedbackSubmitted ? (
+                <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>{t('scanner.feedback_thanks')}</span>
+              ) : (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => submitFeedback('accurate')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', fontSize: 13, borderRadius: 6, cursor: 'pointer' }}
+                  >
+                    <ThumbsUp size={14} />
+                    {t('scanner.feedback_yes')}
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => submitFeedback('inaccurate')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', fontSize: 13, borderRadius: 6, cursor: 'pointer' }}
+                  >
+                    <ThumbsDown size={14} />
+                    {t('scanner.feedback_no')}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
     </div>
   )
 }
-
-export default ScamScanner

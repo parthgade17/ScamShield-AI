@@ -1,890 +1,485 @@
-#root {
-  min-height: 100vh;
+
+/* ScamShield AI — Scanner results */
+
+.scam-scanner-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.app-layout {
-  min-height: 100vh;
-  display: flex;
-  background: #f5f7fb;
+.scam-input-card,
+.scam-risk-card,
+.scam-detail-card,
+.scam-loading-card {
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
   color: #172033;
 }
 
-/* Sidebar */
-
-.sidebar {
-  width: 255px;
-  min-width: 255px;
-  min-height: 100vh;
-  padding: 25px 16px 18px;
+.scam-section-heading,
+.scam-result-header {
   display: flex;
-  flex-direction: column;
-  background: #111c32;
-  color: #ffffff;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 0 7px 30px;
-}
-
-.brand-icon {
-  width: 43px;
-  height: 43px;
-  display: grid;
-  place-items: center;
-  border-radius: 13px;
-  background: #2764e7;
-  color: white;
-}
-
-.brand-text h2 {
-  margin: 0;
-  font-size: 19px;
-  letter-spacing: -0.6px;
-}
-
-.brand-text h2 span {
-  color: #69a5ff;
-}
-
-.brand-text p {
-  margin: 5px 0 0;
-  font-size: 8px;
-  letter-spacing: 1.1px;
-  color: #a5b1c8;
-}
-
-.sidebar-label {
-  margin: 0 10px 12px;
-  font-size: 10px;
-  letter-spacing: 1.4px;
-  color: #8291ab;
-  font-weight: 700;
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.nav-item {
-  width: 100%;
-  min-height: 46px;
-  padding: 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border: none;
-  border-radius: 9px;
-  background: transparent;
-  color: #b5c0d3;
-  text-align: left;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.nav-item span {
-  flex: 1;
-}
-
-.nav-item:hover {
-  background: #202e48;
-  color: white;
-}
-
-.nav-item.nav-active {
-  background: #2764e7;
-  color: white;
-  box-shadow: 0 5px 14px #07132940;
-}
-
-.sidebar-spacer {
-  flex: 1;
-  min-height: 35px;
-}
-
-.sidebar-safety {
-  padding: 17px;
-  border: 1px solid #34435d;
-  border-radius: 12px;
-  background: #1b2942;
-}
-
-.sidebar-safety > svg {
-  color: #72a9ff;
-}
-
-.sidebar-safety h3 {
-  margin: 12px 0 7px;
-  font-size: 13px;
-}
-
-.sidebar-safety p {
-  margin: 0;
-  color: #b5c0d3;
-  font-size: 11px;
-  line-height: 1.7;
-}
-
-.sidebar-footer {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 22px 4px 0;
-}
-
-.user-avatar,
-.topbar-avatar {
-  width: 37px;
-  height: 37px;
-  display: grid;
-  place-items: center;
-  border: none;
-  border-radius: 50%;
-  background: #dce8ff;
-  color: #2455bd;
-  font-weight: 700;
-}
-
-.user-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.user-info h4 {
-  margin: 0;
-  font-size: 12px;
-}
-
-.user-info p {
-  margin: 5px 0 0;
-  font-size: 10px;
-  color: #9eacc3;
-}
-
-.sidebar-footer > svg {
-  color: #8e9cb4;
-}
-
-/* Main content */
-
-.main-area {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.topbar {
-  min-height: 82px;
-  padding: 15px 34px;
-  display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
-  background: #ffffff;
-  border-bottom: 1px solid #e9edf4;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.topbar-left,
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
+.scam-section-heading h2,
+.scam-result-header h2,
+.scam-loading-card h3 {
+  margin: 0 0 8px;
 }
 
-.breadcrumb {
-  margin: 0 0 5px;
-  color: #8b95a7;
-  font-size: 11px;
-}
-
-.topbar h2 {
+.scam-section-heading p,
+.scam-result-header p,
+.scam-loading-card p {
   margin: 0;
-  font-size: 19px;
+  line-height: 1.6;
+  color: #64748b;
 }
 
-.topbar-right {
-  gap: 20px;
+.scam-section-heading > svg {
+  flex-shrink: 0;
+  color: #2563eb;
 }
 
-.system-status {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 11px;
-  border-radius: 20px;
-  background: #e9f9f0;
-  color: #16834a;
-  font-size: 11px;
+.scam-input-card label {
+  display: block;
+  margin-bottom: 8px;
   font-weight: 600;
 }
 
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #24b76a;
-}
-
-.notification-button {
-  width: 39px;
-  height: 39px;
-  position: relative;
-  display: grid;
-  place-items: center;
-  border: 1px solid #e6eaf1;
-  border-radius: 10px;
-  background: white;
-  color: #647087;
-  cursor: pointer;
-}
-
-.notification-button > span {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 7px;
-  height: 7px;
-  border: 1px solid white;
-  border-radius: 50%;
-  background: #ef5555;
-}
-
-.topbar-avatar {
-  cursor: pointer;
-}
-
-.page-content {
-  flex: 1;
-  width: 100%;
-  max-width: 1500px;
-  margin: 0 auto;
-  padding: 30px 34px;
-}
-
-.app-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 15px;
-  padding: 17px 34px;
-  border-top: 1px solid #e9edf4;
-  background: white;
-  color: #8b95a7;
-  font-size: 10px;
-}
-
-.app-footer p {
-  margin: 0;
-}
-
-.mobile-menu,
-.mobile-close,
-.sidebar-overlay {
-  display: none;
-}
-
-/* Page headings */
-
-.page-container {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
-
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.page-title > svg {
-  color: #2764e7;
-}
-
-.page-title h1 {
-  margin: 0;
-  font-size: 25px;
-  letter-spacing: -0.7px;
-}
-
-.page-title p {
-  margin: 7px 0 0;
-  color: #7b8799;
-  font-size: 13px;
-}
-
-.welcome-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  padding: 30px;
-  border-radius: 16px;
-  background: linear-gradient(120deg, #17294c, #2868db);
-  color: white;
-  box-shadow: 0 9px 25px #244f9918;
-}
-
-.welcome-section > svg {
-  flex-shrink: 0;
-  color: #c8dcff;
-}
-
-.welcome-section h1 {
-  margin: 9px 0;
-  font-size: clamp(22px, 3vw, 29px);
-  letter-spacing: -0.8px;
-}
-
-.welcome-section p {
-  margin: 0;
-  color: #d5e3ff;
-  font-size: 13px;
-  line-height: 1.7;
-}
-
-.welcome-section .eyebrow {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-}
-
-/* Statistics */
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 17px;
-}
-
-.stat-card {
-  padding: 20px;
-  border: 1px solid #e9edf4;
-  border-radius: 13px;
-  background: white;
-  box-shadow: 0 3px 10px #1b315008;
-}
-
-.stat-card > svg {
-  color: #2867e8;
-}
-
-.stat-card p {
-  margin: 14px 0 6px;
-  color: #778297;
-  font-size: 12px;
-}
-
-.stat-card h2 {
-  margin: 0;
-  font-size: 28px;
-  letter-spacing: -1px;
-}
-
-.stat-card span {
+.scam-input-card textarea {
   display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #172033;
+  font: inherit;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.scam-input-card textarea:focus {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+  border-color: #2563eb;
+}
+
+.scam-input-footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 8px;
-  color: #919bad;
-  font-size: 10px;
-}
-
-/* Quick actions */
-
-.section-heading h2 {
-  margin: 0;
-  font-size: 19px;
-}
-
-.section-heading p {
-  margin: 7px 0 0;
-  color: #7b8799;
+  color: #64748b;
   font-size: 12px;
 }
 
-.actions-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 17px;
-}
-
-.action-card {
-  min-width: 0;
-  padding: 22px;
-  border: 1px solid #e8edf5;
-  border-radius: 13px;
-  background: white;
-  text-align: left;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-}
-
-.action-card:hover {
-  transform: translateY(-3px);
-  border-color: #c5d7ff;
-  box-shadow: 0 10px 25px #1d3b6e0d;
-}
-
-.action-card > svg {
-  color: #2867e8;
-}
-
-.action-card h3 {
-  margin: 15px 0 8px;
-  font-size: 15px;
-}
-
-.action-card p {
-  min-height: 42px;
-  margin: 0;
-  color: #7b8799;
-  font-size: 12px;
-  line-height: 1.7;
-}
-
-.action-card > span {
+.scam-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 18px;
-  color: #2764e7;
-  font-size: 12px;
-  font-weight: 700;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
 }
 
-/* Safety banner */
+.scam-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
 
-.safety-banner {
+.scam-actions button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.scam-clear-button {
+  padding: 11px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.scam-error {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  padding: 19px 21px;
-  border: 1px solid #f6dfae;
-  border-radius: 12px;
-  background: #fff9ec;
-  color: #8a5b0a;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #991b1b;
+  line-height: 1.5;
 }
 
-.safety-banner > svg {
+.scam-error svg {
+  flex-shrink: 0;
+}
+
+.scam-loading-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.scam-spin {
+  flex-shrink: 0;
+  animation: scam-spin 1s linear infinite;
+}
+
+@keyframes scam-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.scam-results {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.scam-risk-card {
+  border-top: 4px solid #64748b;
+}
+
+.scam-risk-card.risk-low {
+  border-top-color: #16a34a;
+}
+
+.scam-risk-card.risk-medium {
+  border-top-color: #d97706;
+}
+
+.scam-risk-card.risk-high {
+  border-top-color: #ea580c;
+}
+
+.scam-risk-card.risk-critical {
+  border-top-color: #dc2626;
+}
+
+.scam-result-header {
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.scam-result-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.risk-low .scam-result-icon {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.risk-medium .scam-result-icon {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.risk-high .scam-result-icon,
+.risk-critical .scam-result-icon {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.scam-eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #64748b;
+}
+
+.scam-score-area {
+  margin-top: 24px;
+}
+
+.scam-score-label,
+.scam-score-scale {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.scam-score-label {
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.scam-score-label strong {
+  font-size: 20px;
+}
+
+.scam-score-track {
+  width: 100%;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.scam-score-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #64748b;
+  transition: width 350ms ease;
+}
+
+.risk-low .scam-score-fill {
+  background: #16a34a;
+}
+
+.risk-medium .scam-score-fill {
+  background: #d97706;
+}
+
+.risk-high .scam-score-fill {
+  background: #ea580c;
+}
+
+.risk-critical .scam-score-fill {
+  background: #dc2626;
+}
+
+.scam-score-scale {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.scam-method-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.scam-indicator-list,
+.scam-recommendation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scam-indicator-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.scam-indicator-list li:last-child {
+  border-bottom: 0;
+}
+
+.scam-indicator-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #dc2626;
+}
+
+.scam-indicator-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.scam-indicator-content strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.scam-indicator-content p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.scam-indicator-points {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.scam-no-indicators {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: #15803d;
+}
+
+.scam-no-indicators p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.scam-recommendation-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.6;
+}
+
+.scam-recommendation-list svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: #16a34a;
+}
+
+.scam-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.scam-disclaimer svg {
   flex-shrink: 0;
   margin-top: 2px;
 }
 
-.safety-banner h3 {
-  margin: 0 0 6px;
-  font-size: 13px;
-}
-
-.safety-banner p {
+.scam-disclaimer p {
   margin: 0;
-  color: #8e7549;
-  font-size: 12px;
-  line-height: 1.7;
-}
-
-/* Forms and cards */
-
-.content-card {
-  padding: 25px;
-  border: 1px solid #e8edf5;
-  border-radius: 14px;
-  background: white;
-  box-shadow: 0 3px 10px #1b315008;
-}
-
-.content-card > label,
-.content-card label:not(.toggle-row) {
-  display: block;
-  margin: 18px 0 9px;
-  color: #3e4a60;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.content-card textarea,
-.content-card input:not([type='checkbox']),
-.content-card select {
-  width: 100%;
-  padding: 13px 14px;
-  border: 1px solid #dce3ed;
-  border-radius: 9px;
-  outline: none;
-  background: #ffffff;
-  color: #172033;
-  font: inherit;
   font-size: 13px;
-}
-
-.content-card textarea {
-  resize: vertical;
-  min-height: 145px;
-  line-height: 1.7;
-}
-
-.content-card textarea:focus,
-.content-card input:focus,
-.content-card select:focus {
-  border-color: #4380f6;
-  box-shadow: 0 0 0 3px #4380f61c;
-}
-
-.primary-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  margin-top: 17px;
-  padding: 12px 19px;
-  border: none;
-  border-radius: 9px;
-  background: #2867e8;
-  color: white;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.primary-button:hover {
-  background: #1d50c0;
-}
-
-.result-box {
-  margin-top: 22px;
-  padding: 20px;
-  border: 1px solid #e1e8f3;
-  border-radius: 11px;
-  background: #f8faff;
-}
-
-.result-box h3 {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 0 0 13px;
-  font-size: 15px;
-}
-
-.result-box h4 {
-  margin: 19px 0 10px;
-  font-size: 13px;
-}
-
-.result-box p,
-.result-box li {
-  color: #66738a;
-  font-size: 12px;
-  line-height: 1.8;
-}
-
-.result-box ul {
-  padding-left: 20px;
-}
-
-.disclaimer {
-  color: #8993a5;
-  font-size: 11px;
-  line-height: 1.8;
-}
-
-/* Human review */
-
-.review-card {
-  margin-bottom: 0;
-}
-
-.review-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.review-heading h3 {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 0;
-  font-size: 15px;
-}
-
-.review-heading h3 svg {
-  color: #2867e8;
-}
-
-.review-card > p {
-  margin: 17px 0;
-  color: #68758b;
-  font-size: 13px;
-  line-height: 1.8;
-}
-
-.risk-badge {
-  display: inline-block;
-  padding: 6px 9px;
-  border-radius: 20px;
-  background: #fff0e8;
-  color: #bf5a20;
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.review-result {
-  padding: 11px;
-  border-radius: 8px;
-  background: #e9f9f0;
-  color: #16834a !important;
-}
-
-/* Case history */
-
-.search-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 17px;
-  color: #8390a4;
-}
-
-.search-row input {
-  flex: 1;
-  min-width: 0;
-}
-
-.history-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.history-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  padding: 18px 0;
-  border-top: 1px solid #edf0f5;
-}
-
-.history-item h3 {
-  margin: 0 0 7px;
-  font-size: 13px;
-}
-
-.history-item p {
-  margin: 0 0 7px;
-  color: #6f7b90;
-  font-size: 12px;
   line-height: 1.6;
 }
 
-.history-item small {
-  color: #929caf;
-  font-size: 10px;
+/* Keep scanner controls readable in the existing dark theme. */
+
+html[data-theme="dark"] .scam-input-card,
+html[data-theme="dark"] .scam-risk-card,
+html[data-theme="dark"] .scam-detail-card,
+html[data-theme="dark"] .scam-loading-card {
+  background: #111827;
+  color: #e5e7eb;
+  border-color: #334155;
 }
 
-.history-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+html[data-theme="dark"] .scam-input-card textarea {
+  background: #0f172a;
+  color: #f3f4f6;
+  border-color: #475569;
 }
 
-.icon-button {
-  display: grid;
-  place-items: center;
-  width: 35px;
-  height: 35px;
-  border: 1px solid #e4e9f1;
-  border-radius: 8px;
-  background: white;
-  color: #8b95a7;
-  cursor: pointer;
+html[data-theme="dark"] .scam-section-heading p,
+html[data-theme="dark"] .scam-result-header p,
+html[data-theme="dark"] .scam-loading-card p,
+html[data-theme="dark"] .scam-indicator-content p,
+html[data-theme="dark"] .scam-no-indicators p,
+html[data-theme="dark"] .scam-input-footer,
+html[data-theme="dark"] .scam-score-scale,
+html[data-theme="dark"] .scam-method-note {
+  color: #cbd5e1;
 }
 
-.icon-button:hover {
-  border-color: #f3b6b6;
-  background: #fff2f2;
-  color: #d43d3d;
+html[data-theme="dark"] .scam-method-note,
+html[data-theme="dark"] .scam-indicator-list li {
+  border-color: #334155;
 }
 
-/* Settings */
-
-.settings-card {
-  max-width: 750px;
+html[data-theme="dark"] .scam-result-icon {
+  background: #1e293b;
+  color: #e2e8f0;
 }
 
-.settings-card h3 {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 26px 0 13px;
-  font-size: 14px;
+html[data-theme="dark"] .risk-low .scam-result-icon {
+  background: #14532d;
+  color: #bbf7d0;
 }
 
-.settings-card h3:first-child {
-  margin-top: 0;
+html[data-theme="dark"] .risk-medium .scam-result-icon {
+  background: #78350f;
+  color: #fde68a;
 }
 
-.settings-card h3 svg {
-  color: #2867e8;
+html[data-theme="dark"] .risk-high .scam-result-icon,
+html[data-theme="dark"] .risk-critical .scam-result-icon {
+  background: #7f1d1d;
+  color: #fecaca;
 }
 
-.toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  margin: 17px 0;
-  color: #526078;
-  font-size: 12px;
+html[data-theme="dark"] .scam-score-track {
+  background: #334155;
 }
 
-.toggle-row input[type='checkbox'] {
-  width: 17px;
-  height: 17px;
-  accent-color: #2867e8;
-  cursor: pointer;
+html[data-theme="dark"] .scam-indicator-points {
+  background: #7f1d1d;
+  color: #fecaca;
 }
 
-/* Responsive layout */
-
-@media (max-width: 1100px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .actions-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .page-content {
-    padding: 25px;
-  }
+html[data-theme="dark"] .scam-clear-button {
+  border-color: #475569;
 }
 
-@media (max-width: 760px) {
-  .sidebar {
-    position: fixed;
-    z-index: 20;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 270px;
-    min-width: 270px;
-    transform: translateX(-100%);
-    transition: transform 0.25s;
-    overflow-y: auto;
-  }
-
-  .sidebar.sidebar-open {
-    transform: translateX(0);
-  }
-
-  .sidebar-overlay {
-    position: fixed;
-    z-index: 15;
-    inset: 0;
-    display: block;
-    border: none;
-    background: #07132980;
-  }
-
-  .mobile-menu {
-    display: grid;
-    place-items: center;
-    width: 38px;
-    height: 38px;
-    border: 1px solid #e5eaf2;
-    border-radius: 9px;
-    background: white;
-    color: #26354e;
-    cursor: pointer;
-  }
-
-  .mobile-close {
-    display: grid;
-    place-items: center;
-    margin-left: auto;
-    border: none;
-    background: transparent;
-    color: white;
-    cursor: pointer;
-  }
-
-  .topbar {
-    min-height: 73px;
-    padding: 13px 17px;
-  }
-
-  .topbar-right {
-    gap: 10px;
-  }
-
-  .system-status {
-    display: none;
-  }
-
-  .page-content {
-    padding: 20px 16px;
-  }
-
-  .welcome-section {
-    padding: 23px;
-  }
-
-  .welcome-section > svg {
-    width: 43px;
-    height: 43px;
-  }
-
-  .actions-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .app-footer {
-    flex-direction: column;
-    padding: 17px;
-  }
+html[data-theme="dark"] .scam-error {
+  background: #450a0a;
+  color: #fecaca;
+  border-color: #7f1d1d;
 }
 
-@media (max-width: 450px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
+html[data-theme="dark"] .scam-disclaimer {
+  background: #0f172a;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+@media (max-width: 640px) {
+  .scam-input-card,
+  .scam-risk-card,
+  .scam-detail-card,
+  .scam-loading-card {
+    padding: 16px;
   }
 
-  .welcome-section > svg {
-    display: none;
-  }
-
-  .page-title h1 {
-    font-size: 21px;
-  }
-
-  .content-card {
-    padding: 18px;
-  }
-
-  .history-item {
-    align-items: flex-start;
+  .scam-input-footer {
     flex-direction: column;
   }
 
-  .history-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .topbar h2 {
-    font-size: 16px;
-  }
-
-  .topbar-avatar {
-    width: 34px;
-    height: 34px;
+  .scam-indicator-list li {
+    flex-wrap: wrap;
   }
 }
