@@ -272,7 +272,10 @@ RULES = [
         re.compile(
             r"\b(urgent|immediately|act now|within \d+ hours?|"
             r"account blocked|account suspended|last warning|"
-            r"will be blocked|expires today)\b",
+            r"will be blocked|expires today|"
+            r"turant|jaldi|aaj hi|band ho jayega|block ho jayega|"
+            r"tatkal|tavarit|aataach|band hoil|"
+            r"तुरंत|जल्दी|तातडीने|लगेच|ब्लॉक|बंद होईल|बंद हो जाएगा)\b",
             re.I,
         ),
         20,
@@ -282,7 +285,9 @@ RULES = [
         re.compile(
             r"\b(otp|one.time password|cvv|pin number|"
             r"card number|bank password|internet banking password|"
-            r"upi pin|verification code)\b",
+            r"upi pin|verification code|"
+            r"khata number|aadhaar|pan card|"
+            r"ओटीपी|पिन|पासवर्ड|खाता क्रमांक|आधार कार्ड)\b",
             re.I,
         ),
         30,
@@ -292,7 +297,9 @@ RULES = [
         re.compile(
             r"\b(send money|pay immediately|processing fee|"
             r"advance payment|claim fee|refund fee|"
-            r"transfer funds|pay to receive|prize fee)\b",
+            r"transfer funds|pay to receive|prize fee|"
+            r"paise bhejo|rupaye transfer|shulk|dhan rashi|"
+            r"पैसे पाठवा|पैसे भेजो|शुल्क|अ‍ॅडव्हान्स|पैसे भरा)\b",
             re.I,
         ),
         25,
@@ -302,14 +309,16 @@ RULES = [
         re.compile(
             r"\b(you have won|you've won|lottery winner|"
             r"free prize|guaranteed profit|double your money|"
-            r"free gift|claim your reward)\b",
+            r"free gift|claim your reward|"
+            r"inaam|lottery|jeet gaye|jeeta|mufat|"
+            r"इनाम|लॉटरी|जिंकलात|बक्षीस|फुकट|मोफत)\b",
             re.I,
         ),
         20,
     ),
     (
         "Suspicious link",
-        re.compile(r"(https?://|www\.)", re.I),
+        re.compile(r"(https?://|www\.|\.apk|\.xyz|\.top|\.click)", re.I),
         10,
     ),
     (
@@ -317,7 +326,9 @@ RULES = [
         re.compile(
             r"\b(verify your account|kyc update|"
             r"update kyc|bank official|customer care number|"
-            r"police case|digital arrest|arrest warrant)\b",
+            r"police case|digital arrest|arrest warrant|"
+            r"bijli bill|light bill|electricity bill|"
+            r"विज बिल|केवायसी|डिजिटल अटक|पोलीस|बँक अधिकारी)\b",
             re.I,
         ),
         20,
@@ -327,7 +338,9 @@ RULES = [
         re.compile(
             r"\b(install anydesk|install teamviewer|"
             r"screen sharing app|remote access|"
-            r"install this apk|download this apk)\b",
+            r"install this apk|download this apk|"
+            r"app download karo|apk install kara|"
+            r"अ‍ॅप डाउनलोड करा|अ‍ॅप इन्स्टॉल करा)\b",
             re.I,
         ),
         25,
@@ -335,55 +348,143 @@ RULES = [
 ]
 
 DEFAULT_RECOMMENDATIONS = {
-    "High": [
-        "Do not click links or send money.",
-        "Never share your OTP, PIN, CVV or passwords.",
-        "Verify the request through the organisation's official channel.",
-        "If you already paid, contact your bank immediately.",
-    ],
-    "Medium": [
-        "Verify the sender independently before responding.",
-        "Avoid opening unexpected links or attachments.",
-        "Never share banking credentials or OTPs.",
-    ],
-    "Low": [
-        "Remain cautious with unexpected messages.",
-        "Verify suspicious claims through official channels.",
-    ],
+    "English": {
+        "High": [
+            "Do not click links or send money.",
+            "Never share your OTP, PIN, CVV or passwords.",
+            "Verify the request through the organisation's official channel.",
+            "If you already paid, contact your bank immediately and call 1930.",
+        ],
+        "Medium": [
+            "Verify the sender independently before responding.",
+            "Avoid opening unexpected links or attachments.",
+            "Never share banking credentials or OTPs.",
+        ],
+        "Low": [
+            "Remain cautious with unexpected messages.",
+            "Verify suspicious claims through official channels.",
+        ],
+    },
+    "Hindi": {
+        "High": [
+            "किसी भी लिंक पर क्लिक न करें और न ही पैसे भेजें।",
+            "अपना OTP, PIN, CVV या पासवर्ड कभी किसी से साझा न करें।",
+            "संबंधित बैंक या विभाग के आधिकारिक फोन नंबर पर संपर्क कर पुष्टि करें।",
+            "यदि पैसे कट गए हैं, तो तुरंत अपने बैंक और 1930 साइबर हेल्पलाइन पर शिकायत करें।",
+        ],
+        "Medium": [
+            "जवाब देने से पहले संदेश भेजने वाले की आधिकारिक स्रोत से पुष्टि करें।",
+            "अवांछित या अज्ञात लिंक और फाइलें न खोलें।",
+            "कोई भी बैंकिंग विवरण या OTP साझा न करें।",
+        ],
+        "Low": [
+            "अपरिचित संदेशों और ऑफर्स के प्रति सतर्क रहें।",
+            "संदेहास्पद दावों को हमेशा आधिकारिक वेबसाइट से सत्यापित करें।",
+        ],
+    },
+    "Marathi": {
+        "High": [
+            "कोणत्याही लिंकवर क्लिक करू नका किंवा पैसे पाठवू नका.",
+            "तुमचा OTP, PIN, CVV किंवा पासवर्ड कोणाशीही शेअर करू नका.",
+            "संबंधित बँक किंवा कार्यालयाच्या अधिकृत हेल्पलाईनवर त्वरित खात्री करा.",
+            "पैसे कट झाले असल्यास तात्काळ बँक व 1930 सायबर हेल्पलाईनवर संपर्क साधा.",
+        ],
+        "Medium": [
+            "उत्तर देण्यापूर्वी पाठवणाऱ्या व्यक्तीची किंवा बँकेची अधिकृत पडताळणी करा.",
+            "अनोळखी लिंक्स किंवा फाइल्स उघडू नका.",
+            "बँकिंग माहिती किंवा OTP कोणासही देऊ नका.",
+        ],
+        "Low": [
+            "अनोळखी मेसेज आणि ऑफर्सबाबत सतर्क राहा.",
+            "संशयास्पद माहिती अधिकृत सूत्रांकडून पडताळून पहा.",
+        ],
+    },
 }
 
 
-def analyze_message(message):
+INDICATOR_TRANSLATIONS = {
+    "Hindi": {
+        "Urgency or threat": "अत्यावश्यकता या धमकी भरा संदेश (Urgency / Threat)",
+        "Sensitive information request": "संवेदनशील जानकारी (OTP/पिन/पासवर्ड) की मांग",
+        "Suspicious payment request": "संदेहास्पद भुगतान या शुल्क अनुरोध",
+        "Prize or unrealistic reward": "नकली लॉटरी या अवास्तविक पुरस्कार",
+        "Suspicious link": "संदेहास्पद या असुरक्षित वेब लिंक",
+        "Impersonation or verification": "नकली बैंक/विभाग अधिकारी का रूप धारण",
+        "Remote access or unknown application": "रिमोट एक्सेस या अज्ञात APK ऐप डाउनलोड",
+    },
+    "Marathi": {
+        "Urgency or threat": "तातडी किंवा भीती दाखवणारा मेसेज (Urgency / Threat)",
+        "Sensitive information request": "संवेदनशील माहितीची (OTP/पिन/पासवर्ड) मागणी",
+        "Suspicious payment request": "संशयास्पद पैशांची मागणी किंवा आगाऊ शुल्क",
+        "Prize or unrealistic reward": "बनावट लॉटरी किंवा अवास्तव बक्षीस",
+        "Suspicious link": "संशयास्पद किंवा धोकादायक वेब लिंक",
+        "Impersonation or verification": "बनावट बँक/विभागीय अधिकारी तोतयागिरी",
+        "Remote access or unknown application": "रिमोट अ‍ॅक्सेस किंवा अज्ञात APK अ‍ॅप डाऊनलोड",
+    },
+}
+
+
+def analyze_message(message, language="English"):
     score = 0
-    indicators = []
+    raw_indicators = []
 
     for label, pattern, points in RULES:
         if pattern.search(message):
             score += points
-            indicators.append(label)
+            raw_indicators.append(label)
 
     score = min(score, 100)
     level = get_risk_level(score)
 
-    if indicators:
-        explanation = (
-            "Potential scam indicators detected: "
-            + ", ".join(indicators)
-            + ". These signals require verification but do not "
-              "prove by themselves that the message is fraudulent."
-        )
+    lang_dict = DEFAULT_RECOMMENDATIONS.get(language, DEFAULT_RECOMMENDATIONS["English"])
+    recs = lang_dict.get(level, DEFAULT_RECOMMENDATIONS["English"][level])
+
+    trans_map = INDICATOR_TRANSLATIONS.get(language, {})
+    indicators = [trans_map.get(ind, ind) for ind in raw_indicators]
+
+    if language == "Hindi":
+        if indicators:
+            explanation = (
+                "संदेश में संभावित धोखाधड़ी के संकेत मिले: "
+                + ", ".join(indicators)
+                + "। इन संकेतों की स्वतंत्र पुष्टि आवश्यक है।"
+            )
+        else:
+            explanation = (
+                "संदेश में कोई स्पष्ट धोखाधड़ी संकेत नहीं मिला। "
+                "फिर भी अपरिचित प्रेषकों से सावधान रहें।"
+            )
+    elif language == "Marathi":
+        if indicators:
+            explanation = (
+                "मेसेजमध्ये संशयास्पद फसवणुकीचे संकेत आढळले: "
+                + ", ".join(indicators)
+                + ". या संकेतांची स्वतंत्र पडताळणी करणे आवश्यक आहे."
+            )
+        else:
+            explanation = (
+                "मेसेजमध्ये कोणतेही उघड फसवणुकीचे संकेत आढळले नाहीत. "
+                "तरीही अनोळखी मेसेजपासून सावध राहा."
+            )
     else:
-        explanation = (
-            "No configured scam indicators were detected. "
-            "This does not guarantee that the message is safe."
-        )
+        if indicators:
+            explanation = (
+                "Potential scam indicators detected: "
+                + ", ".join(indicators)
+                + ". These signals require verification but do not prove by themselves that the message is fraudulent."
+            )
+        else:
+            explanation = (
+                "No configured scam indicators were detected. "
+                "This does not guarantee that the message is safe."
+            )
 
     return {
         "risk_score": score,
         "risk_level": level,
         "explanation": explanation,
         "indicators": indicators,
-        "recommendations": DEFAULT_RECOMMENDATIONS[level],
+        "recommendations": recs,
     }
 
 
@@ -391,12 +492,29 @@ def analyze_message(message):
 # 6. GEMINI AI ANALYSIS
 # =========================================================
 
-def analyze_with_gemini(message):
+def analyze_with_gemini(message, language="English"):
     if not gemini_client:
         return None
 
+    lang_instruction = ""
+    if language == "Hindi":
+        lang_instruction = (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user has selected Hindi. "
+            "You MUST output 'explanation', 'indicators', and 'recommendations' strictly in clear Hindi (हिन्दी) "
+            "using the Devanagari script. Do NOT provide English for these fields."
+        )
+    elif language == "Marathi":
+        lang_instruction = (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user has selected Marathi. "
+            "You MUST output 'explanation', 'indicators', and 'recommendations' strictly in clear Marathi (मराठी) "
+            "using the Devanagari script. Do NOT provide English for these fields."
+        )
+    else:
+        lang_instruction = "Generate explanation, indicators, and recommendations in clear English."
+
     prompt = f"""
 You are a cybersecurity assistant analysing suspicious messages.
+{lang_instruction}
 
 Check for phishing, scams, fraud, impersonation, financial manipulation,
 credential theft, suspicious payment requests and suspicious links.
@@ -408,13 +526,14 @@ Return ONLY valid JSON with this structure:
 {{
   "risk_score": 0,
   "risk_level": "Low",
-  "explanation": "Short explanation",
-  "indicators": ["indicator 1"],
-  "recommendations": ["recommendation 1"]
+  "explanation": "Short explanation in requested language",
+  "indicators": ["indicator 1 in requested language"],
+  "recommendations": ["recommendation 1 in requested language"]
 }}
 
 Rules:
 - risk_score must be an integer from 0 to 100.
+- risk_level must be one of "Low", "Medium", "High" (keep this literal value for UI logic).
 - Low means 0-39, Medium means 40-74, High means 75-100.
 - Explain evidence rather than making unsupported assumptions.
 - A URL alone does not prove a scam.
@@ -483,7 +602,7 @@ MESSAGE TO ANALYSE:
 # 7. COMBINE RULES AND AI
 # =========================================================
 
-def combine_results(rule_result, ai_result):
+def combine_results(rule_result, ai_result, language="English"):
     if ai_result is None:
         result = dict(rule_result)
         result["detection_method"] = "rule_based"
@@ -511,11 +630,24 @@ def combine_results(rule_result, ai_result):
     explanation = ai_result["explanation"]
 
     if rule_result["indicators"]:
-        explanation += (
-            " Rule-based signals also detected: "
-            + ", ".join(rule_result["indicators"])
-            + "."
-        )
+        if language == "Hindi":
+            explanation += (
+                " नियम-आधारित चेतावनी संकेत: "
+                + ", ".join(rule_result["indicators"])
+                + "।"
+            )
+        elif language == "Marathi":
+            explanation += (
+                " नियम-आधारित इशारा संकेत: "
+                + ", ".join(rule_result["indicators"])
+                + "।"
+            )
+        else:
+            explanation += (
+                " Rule-based signals also detected: "
+                + ", ".join(rule_result["indicators"])
+                + "."
+            )
 
     return {
         "risk_score": score,
@@ -581,6 +713,9 @@ def scan_message():
         }), 400
 
     message = data.get("message")
+    language = data.get("language", "English")
+    if language not in ("English", "Hindi", "Marathi"):
+        language = "English"
 
     if not isinstance(message, str):
         return jsonify({
@@ -597,9 +732,9 @@ def scan_message():
             "error": f"Message cannot exceed {MAX_MESSAGE_LENGTH} characters."
         }), 400
 
-    rule_result = analyze_message(message)
-    ai_result = analyze_with_gemini(message)
-    result = combine_results(rule_result, ai_result)
+    rule_result = analyze_message(message, language=language)
+    ai_result = analyze_with_gemini(message, language=language)
+    result = combine_results(rule_result, ai_result, language=language)
 
     result["ai_model"] = GEMINI_MODEL if ai_result else None
     result["saved"] = False
@@ -648,6 +783,10 @@ def scan_image():
 
     data = request.get_json(silent=True) or {}
     image_b64 = data.get("image") or ""
+    language = data.get("language", "English")
+    if language not in ("English", "Hindi", "Marathi"):
+        language = "English"
+
     if not image_b64:
         return jsonify({"error": "No image data provided."}), 400
 
@@ -674,9 +813,29 @@ def scan_image():
             "recommendations": ["Configure GEMINI_API_KEY in environment."]
         }), 200
 
+    lang_clause = ""
+    if language == "Hindi":
+        lang_clause = (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user selected Hindi. "
+            "Write the 'explanation', 'indicators', and 'recommendations' strictly in clear Hindi (Devanagari script हिन्दी). "
+            "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
+        )
+    elif language == "Marathi":
+        lang_clause = (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user selected Marathi. "
+            "Write the 'explanation', 'indicators', and 'recommendations' strictly in clear Marathi (Devanagari script मराठी). "
+            "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
+        )
+    else:
+        lang_clause = (
+            "Write the 'explanation', 'indicators', and 'recommendations' in clear English. "
+            "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
+        )
+
     prompt = (
         "You are an expert fraud and cybercrime detection system. Analyze this screenshot "
         "(WhatsApp message, SMS, payment receipt, bank alert, or QR code) for fraud.\n"
+        f"{lang_clause}\n"
         "1. Extract all text clearly in the original language (Hindi/Marathi/English).\n"
         "2. Check if this is a fake payment receipt (examine UTR number format, font tampering, timing inconsistencies).\n"
         "3. Check for social engineering (urgent threat of account freeze, electricity cut-off, lottery, job scam, KYC update link).\n"

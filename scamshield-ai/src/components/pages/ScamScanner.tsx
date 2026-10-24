@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   ScanSearch,
   AlertTriangle,
@@ -44,7 +44,7 @@ type ScanResponse = {
   extracted_text?: string
 }
 
-const TRIGGER_REGEX = /\b(urgent|immediately|act now|within \d+ hours?|account blocked|account suspended|last warning|will be blocked|expires today|otp|one.time password|cvv|pin|bank password|upi pin|verification code|send money|pay immediately|processing fee|advance payment|claim fee|refund fee|transfer funds|pay to receive|prize fee|kyc|electricity|free gift)\b/gi
+const TRIGGER_REGEX = /\b(urgent|immediately|act now|within \d+ hours?|account blocked|account suspended|last warning|will be blocked|expires today|otp|one.time password|cvv|pin|bank password|upi pin|verification code|send money|pay immediately|processing fee|advance payment|claim fee|refund fee|transfer funds|pay to receive|prize fee|kyc|electricity|free gift|turant|jaldi|tatkal|aaj hi|band ho jayega|block ho jayega|paise|inaam|lottery|विज बिल|ओटीपी|पिन|पासवर्ड|खाता|पैसे|इनाम|लॉटरी|ब्लॉक|तातडीने|लगेच)\b/gi
 
 function riskColor(level?: string) {
   if (level === 'High') return '#ef4444'
@@ -74,6 +74,20 @@ export default function ScamScanner() {
   // User feedback state
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<string | null>(null)
 
+  // Preload speech synthesis voices
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.getVoices()
+      const updateVoices = () => {
+        window.speechSynthesis.getVoices()
+      }
+      window.speechSynthesis.onvoiceschanged = updateVoices
+      return () => {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [])
+
   // --- Voice Input (Speech Recognition) ---
   function toggleVoiceInput() {
     if (isListening) {
@@ -86,7 +100,7 @@ export default function ScamScanner() {
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
 
     if (!SpeechRecognition) {
-      setError('Speech recognition is not supported in this browser. Please use Google Chrome.')
+      setError(t('scanner.voice_err_unsupported'))
       return
     }
 
@@ -96,7 +110,7 @@ export default function ScamScanner() {
       recognition.continuous = false
       recognition.interimResults = false
 
-      // Match language to selected rural/regional language
+      // Match recognition language to active rural/regional language
       if (language === 'Hindi') {
         recognition.lang = 'hi-IN'
       } else if (language === 'Marathi') {
@@ -117,6 +131,9 @@ export default function ScamScanner() {
 
       recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error)
+        if (event.error === 'not-allowed') {
+          setError(t('scanner.voice_err_permission'))
+        }
         setIsListening(false)
       }
 
@@ -131,7 +148,7 @@ export default function ScamScanner() {
     }
   }
 
-  // --- Voice Read Aloud (Text-to-Speech) ---
+  // --- Voice Read Aloud (Text-to-Speech in English, Hindi, or Marathi) ---
   function toggleReadAloud() {
     if (!scan) return
 
@@ -141,18 +158,98 @@ export default function ScamScanner() {
       return
     }
 
-    const textToRead = `${t('scanner.risk_level')}: ${scan.risk_level}. ${scan.explanation || ''}. ${
-      scan.recommendations && scan.recommendations.length > 0 ? scan.recommendations[0] : ''
-    }`
-
-    const utterance = new SpeechSynthesisUtterance(textToRead)
+    // Build natural-sounding verdict spoken text in user's active language
+    let textToRead = ''
+    let langTag = 'en-IN'
 
     if (language === 'Hindi') {
-      utterance.lang = 'hi-IN'
+      langTag = 'hi-IN'
+      const riskText =
+        scan.risk_level === 'High' ? 'उच्च' : scan.risk_level === 'Medium' ? 'मध्यम' : 'कम'
+      textToRead = `स्कैन परिणाम: जोखिम स्तर ${riskText} है, और जोखिम स्कोर 100 में से ${scan.risk_score ?? 0} है। `
+      if (scan.explanation) {
+        textToRead += `${scan.explanation} `
+      }
+      if (scan.recommendations && scan.recommendations.length > 0) {
+        textToRead += `सुरक्षा सलाह: ${scan.recommendations[0]}`
+      }
     } else if (language === 'Marathi') {
-      utterance.lang = 'mr-IN'
+      langTag = 'mr-IN'
+      const riskText =
+        scan.risk_level === 'High' ? 'उच्च' : scan.risk_level === 'Medium' ? 'मध्यम' : 'कमी'
+      textToRead = `स्कॅन निकाल: जोखीम पातळी ${riskText} आहे, आणि जोखीम गुण 100 पैकी ${scan.risk_score ?? 0} आहेत. `
+      if (scan.explanation) {
+        textToRead += `${scan.explanation} `
+      }
+      if (scan.recommendations && scan.recommendations.length > 0) {
+        textToRead += `सुरक्षा सल्ला: ${scan.recommendations[0]}`
+      }
     } else {
-      utterance.lang = 'en-IN'
+      langTag = 'en-IN'
+      textToRead = `Scan result: Risk level is ${scan.risk_level}, with a risk score of ${scan.risk_score ?? 0} out of 100. `
+      if (scan.explanation) {
+        textToRead += `${scan.explanation} `
+      }
+      if (scan.recommendations && scan.recommendations.length > 0) {
+        textToRead += `Recommended action: ${scan.recommendations[0]}`
+      }
+    }
+
+    const utterance = new SpeechSynthesisUtterance(textToRead)
+    utterance.lang = langTag
+    utterance.rate = 0.95
+    utterance.pitch = 1.0
+
+    // Voice selection with regional fallback
+    const voices = window.speechSynthesis.getVoices()
+    if (language === 'Hindi') {
+      const hiVoice = voices.find(
+        (v) =>
+          v.lang.toLowerCase().startsWith('hi') ||
+          v.name.toLowerCase().includes('hindi') ||
+          v.name.includes('हिन्दी') ||
+          v.name.toLowerCase().includes('kalpana') ||
+          v.name.toLowerCase().includes('hemant')
+      )
+      if (hiVoice) {
+        utterance.voice = hiVoice
+      }
+    } else if (language === 'Marathi') {
+      // 1. Try to find native Marathi voice
+      const mrVoice = voices.find(
+        (v) =>
+          v.lang.toLowerCase().startsWith('mr') ||
+          v.name.toLowerCase().includes('marathi') ||
+          v.name.includes('मराठी') ||
+          v.name.toLowerCase().includes('aarohi')
+      )
+      if (mrVoice) {
+        utterance.voice = mrVoice
+      } else {
+        // 2. High-fidelity fallback: Hindi Devanagari voice accurately pronounces Marathi text
+        const hiFallback = voices.find(
+          (v) =>
+            v.lang.toLowerCase().startsWith('hi') ||
+            v.name.toLowerCase().includes('hindi') ||
+            v.name.includes('हिन्दी') ||
+            v.name.toLowerCase().includes('kalpana') ||
+            v.name.toLowerCase().includes('hemant')
+        )
+        if (hiFallback) {
+          utterance.voice = hiFallback
+          utterance.lang = 'hi-IN'
+        }
+      }
+    } else {
+      const enVoice = voices.find(
+        (v) =>
+          v.lang.toLowerCase().startsWith('en-in') ||
+          v.lang.toLowerCase().startsWith('en-gb') ||
+          v.lang.toLowerCase().startsWith('en')
+      )
+      if (enVoice) {
+        utterance.voice = enVoice
+      }
     }
 
     utterance.onend = () => setIsSpeaking(false)
@@ -200,7 +297,7 @@ export default function ScamScanner() {
       const response = await fetch(`${API_BASE_URL}/api/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: message.trim() }),
+        body: JSON.stringify({ message: message.trim(), language }),
       })
 
       const data = await response.json().catch(() => ({}))
@@ -232,7 +329,7 @@ export default function ScamScanner() {
       const response = await fetch(`${API_BASE_URL}/api/scan/image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: selectedImage }),
+        body: JSON.stringify({ image: selectedImage, language }),
       })
 
       const data = await response.json().catch(() => ({}))
@@ -499,7 +596,7 @@ export default function ScamScanner() {
                 }}
               >
                 {isSpeaking ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                {isSpeaking ? 'Stop Reading' : t('scanner.listen_verdict')}
+                {isSpeaking ? t('scanner.stop_reading') : t('scanner.listen_verdict')}
               </button>
             </div>
 
@@ -507,7 +604,14 @@ export default function ScamScanner() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 20 }}>
               <div style={{ padding: 14, borderRadius: 10, background: 'var(--card-background, #f8fafc)', border: '1px solid #e5e7eb' }}>
                 <p style={{ margin: '0 0 6px', fontSize: 13, color: '#6b7280' }}>{t('scanner.risk_level')}</p>
-                <strong style={{ color: riskColor(scan.risk_level), fontSize: 20 }}>{scan.risk_level}</strong>
+                <strong style={{ color: riskColor(scan.risk_level), fontSize: 20 }}>
+                  {language === 'Hindi'
+                    ? scan.risk_level === 'High' ? 'उच्च' : scan.risk_level === 'Medium' ? 'मध्यम' : 'कम'
+                    : language === 'Marathi'
+                    ? scan.risk_level === 'High' ? 'उच्च' : scan.risk_level === 'Medium' ? 'मध्यम' : 'कमी'
+                    : scan.risk_level}
+                  {language !== 'English' ? ` (${scan.risk_level})` : ''}
+                </strong>
               </div>
 
               <div style={{ padding: 14, borderRadius: 10, background: 'var(--card-background, #f8fafc)', border: '1px solid #e5e7eb' }}>
