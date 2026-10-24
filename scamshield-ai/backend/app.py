@@ -31,7 +31,10 @@ API_KEY = (
     or os.getenv("GOOGLE_API_KEY", "")
 ).strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
-DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+DATABASE_URL = (
+    os.getenv("DATABASE_URL", "")
+    or "postgresql://postgres.braqdveiscllhubnmaqa:Parth%4007091705@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres"
+).strip()
 
 # Candidate models list with fallback priority
 CANDIDATE_GEMINI_MODELS = list(
@@ -63,7 +66,6 @@ if DATABASE_URL:
 
     app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 else:
-    # Local fallback if DATABASE_URL is not configured.
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///scamshield.db"
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -76,11 +78,8 @@ db = SQLAlchemy(app)
 
 CORS(
     app,
-    origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-    ],
+    origins="*",
+    supports_credentials=True,
 )
 
 gemini_client = genai.Client(api_key=API_KEY) if API_KEY else None
@@ -1011,6 +1010,7 @@ def combine_results(rule_result, ai_result, ml_result, language="English"):
 # =========================================================
 
 @app.get("/api/health")
+@app.get("/health")
 def health():
     global DATABASE_STATUS
 
@@ -1049,6 +1049,7 @@ def health():
 # =========================================================
 
 @app.post("/api/scan")
+@app.post("/scan")
 def scan_message():
     data = request.get_json(silent=True)
 
@@ -1140,6 +1141,7 @@ def scan_message():
 # =========================================================
 
 @app.post("/api/scan/image")
+@app.post("/scan/image")
 def scan_image():
     import base64
     from google.genai import types
@@ -1320,6 +1322,7 @@ def scan_feedback():
 # =========================================================
 
 @app.get("/api/history")
+@app.get("/history")
 def scan_history():
     try:
         limit = request.args.get("limit", default=20, type=int)
@@ -1356,6 +1359,7 @@ def scan_history():
 
 
 @app.delete("/api/history/<int:scan_id>")
+@app.delete("/history/<int:scan_id>")
 def delete_scan(scan_id):
     try:
         record = db.session.get(ScanHistory, scan_id)
@@ -1386,6 +1390,7 @@ def delete_scan(scan_id):
 # =========================================================
 
 @app.get("/api/dashboard/stats")
+@app.get("/dashboard/stats")
 def dashboard_stats():
     try:
         total_message_scans = db.session.query(db.func.count(ScanHistory.id)).scalar() or 0
@@ -1654,6 +1659,7 @@ def analyze_url_heuristics(url_str):
 
 
 @app.post("/api/links/check")
+@app.post("/links/check")
 def check_link_endpoint():
     data = request.get_json(silent=True) or {}
     url = (data.get("url") or "").strip()
@@ -1708,6 +1714,7 @@ def check_link_endpoint():
 
 
 @app.get("/api/links/history")
+@app.get("/links/history")
 def link_history():
     try:
         limit = min(50, max(1, request.args.get("limit", 20, type=int)))
@@ -1728,6 +1735,7 @@ def link_history():
 # =========================================================
 
 @app.get("/api/reviews")
+@app.get("/reviews")
 def get_review_queue():
     try:
         records = (
@@ -1761,6 +1769,7 @@ def get_review_queue():
 
 
 @app.post("/api/reviews/<path:scan_id_or_ref>")
+@app.post("/reviews/<path:scan_id_or_ref>")
 def submit_review(scan_id_or_ref):
     data = request.get_json(silent=True) or {}
     decision = (data.get("decision") or "").strip()

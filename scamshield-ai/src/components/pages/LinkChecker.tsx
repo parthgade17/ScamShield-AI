@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, AlertTriangle, ShieldCheck, Loader2 } from 'lucide-react'
-import { API_BASE_URL } from '../../api'
+import { API_BASE_URL, dbLogger } from '../../api'
 import { useLanguage } from '../../context/LanguageContext'
 
 function LinkChecker() {
@@ -27,6 +27,8 @@ function LinkChecker() {
     setRiskScore(null)
     setRiskLevel(null)
 
+    dbLogger.info('LinkChecker', `Analyzing URL: ${url.trim()}...`)
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/links/check`, {
         method: 'POST',
@@ -39,6 +41,7 @@ function LinkChecker() {
         setRiskScore(data.risk_score)
         setRiskLevel(data.risk_level)
         setWarnings(data.warnings || [])
+        dbLogger.success('LinkChecker', 'URL inspection completed:', data)
 
         if (data.risk_level === 'High') {
           setResult('Caution: High-risk URL warning signs detected!')
@@ -48,9 +51,11 @@ function LinkChecker() {
           setResult('No obvious URL warning signs detected.')
         }
       } else {
+        dbLogger.warn('LinkChecker', `Backend check returned status ${response.status}`)
         setResult('Could not complete link analysis. Check URL format.')
       }
-    } catch {
+    } catch (err) {
+      dbLogger.warn('LinkChecker', 'Backend unreachable. Running client heuristics...', err)
       // Fallback to client-side heuristics if offline
       let formattedUrl = url.trim()
       if (!/^https?:\/\//i.test(formattedUrl)) {

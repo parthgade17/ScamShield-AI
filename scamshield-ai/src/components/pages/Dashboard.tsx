@@ -8,25 +8,25 @@ import {
   Link,
   MessageSquareWarning,
   RefreshCw,
+  Database,
+  AlertCircle,
 } from 'lucide-react'
-import { API_BASE_URL } from '../../api'
+import {
+  API_BASE_URL,
+  dbLogger,
+  fetchWithTimeout,
+  fetchStatsFromSupabase,
+  type DashboardStats,
+} from '../../api'
 import { useLanguage } from '../../context/LanguageContext'
 
 type DashboardProps = {
   onNavigate: (page: string) => void
 }
 
-type Stats = {
-  total_scans: number
-  high_risk: number
-  pending_reviews: number
-  cases_reviewed: number
-  total_links: number
-}
-
 function Dashboard({ onNavigate }: DashboardProps) {
   const { t } = useLanguage()
-  const [stats, setStats] = useState<Stats>({
+  const [stats, setStats] = useState<DashboardStats>({
     total_scans: 0,
     high_risk: 0,
     pending_reviews: 0,
@@ -35,23 +35,61 @@ function Dashboard({ onNavigate }: DashboardProps) {
   })
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [dataSource, setDataSource] = useState<string>('')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const loadStats = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setIsRefreshing(true)
+    setErrorMessage(null)
+
+    const statsUrl = `${API_BASE_URL}/api/dashboard/stats`
+    dbLogger.info('Dashboard', `Requesting live database statistics from ${statsUrl}...`)
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dashboard/stats`)
+      // 1. Try Backend API first (SQLAlchemy + Gemini Engine)
+      const response = await fetchWithTimeout(statsUrl, {}, 4500)
+
       if (response.ok) {
         const data = await response.json()
-        setStats({
-          total_scans: data.total_scans ?? 0,
-          high_risk: data.high_risk ?? 0,
-          pending_reviews: data.pending_reviews ?? 0,
-          cases_reviewed: data.cases_reviewed ?? 0,
-          total_links: data.total_links ?? 0,
-        })
+        const newStats: DashboardStats = {
+          total_scans: Number(data.total_scans ?? 0),
+          high_risk: Number(data.high_risk ?? 0),
+          pending_reviews: Number(data.pending_reviews ?? 0),
+          cases_reviewed: Number(data.cases_reviewed ?? 0),
+          total_links: Number(data.total_links ?? 0),
+          source: 'backend',
+        }
+        setStats(newStats)
+        setDataSource('Backend API (Postgres)')
+        dbLogger.success('Dashboard', 'Live stats loaded from Backend API:', newStats)
+        return
       }
-    } catch (err) {
-      console.error('Failed to load dashboard stats:', err)
+
+      throw new Error(`Backend returned HTTP status ${response.status}`)
+    } catch (backendErr) {
+      dbLogger.warn(
+        'Dashboard',
+        'Backend API query failed or timed out. Activating direct Supabase PostgREST query...',
+        backendErr instanceof Error ? backendErr.message : String(backendErr)
+      )
+
+      // 2. Failover directly to Supabase PostgREST
+      try {
+        const supabaseStats = await fetchStatsFromSupabase()
+        setStats(supabaseStats)
+        setDataSource('Supabase Direct')
+        dbLogger.success('Dashboard', 'Live stats retrieved via Supabase Direct failover:', supabaseStats)
+      } catch (supabaseErr) {
+        dbLogger.error(
+          'Dashboard',
+          'Both Backend API and Supabase Direct queries failed.',
+          supabaseErr,
+          'Check network tab in DevTools or run window.__scamshield_debug.testSupabase()'
+        )
+        setErrorMessage(
+          'Unable to reach database. Please check your internet connection or inspect browser console.'
+        )
+      }
     } finally {
       setLoading(false)
       setIsRefreshing(false)
@@ -60,16 +98,25 @@ function Dashboard({ onNavigate }: DashboardProps) {
 
   useEffect(() => {
     loadStats()
-    // Live update poll every 5 seconds so dashboard always reflects latest scans & reviews
+    // Poll live statistics every 10 seconds to keep counts synchronized
     const interval = setInterval(() => {
       loadStats(false)
-    }, 5000)
+    }, 10000)
     return () => clearInterval(interval)
   }, [loadStats])
 
   return (
     <div className="page-container">
-      <div className="welcome-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+      <div
+        className="welcome-section"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 16,
+        }}
+      >
         <div>
           <p className="eyebrow">{t('dashboard.eyebrow')}</p>
           <h1>{t('dashboard.welcome')}</h1>
@@ -77,11 +124,38 @@ function Dashboard({ onNavigate }: DashboardProps) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {dataSource && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                padding: '4px 10px',
+                borderRadius: 20,
+                background: 'rgba(255, 255, 255, 0.2)',
+                color: '#fff',
+                fontWeight: 600,
+              }}
+              title="Active live database source"
+            >
+              <Database size={13} />
+              {dataSource}
+            </span>
+          )}
+
           <button
             className="secondary-button"
             onClick={() => loadStats(true)}
             disabled={isRefreshing}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '8px 14px',
+              borderRadius: 8,
+              cursor: 'pointer',
+            }}
             title="Refresh Live Statistics"
           >
             <RefreshCw size={16} className={isRefreshing ? 'spinner' : ''} />
@@ -90,6 +164,43 @@ function Dashboard({ onNavigate }: DashboardProps) {
           <ShieldCheck size={64} />
         </div>
       </div>
+
+      {errorMessage && (
+        <div
+          style={{
+            margin: '16px 0',
+            padding: '12px 16px',
+            borderRadius: 8,
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid #ef4444',
+            color: '#b91c1c',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <AlertCircle size={20} />
+            <span>{errorMessage}</span>
+          </div>
+          <button
+            onClick={() => loadStats(true)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: 6,
+              background: '#ef4444',
+              color: '#fff',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 13,
+            }}
+          >
+            Retry Now
+          </button>
+        </div>
+      )}
 
       <div className="stats-grid">
         <div className="stat-card">
@@ -134,7 +245,9 @@ function Dashboard({ onNavigate }: DashboardProps) {
           <MessageSquareWarning size={30} />
           <h3>{t('dashboard.scan_msg_title')}</h3>
           <p>{t('dashboard.scan_msg_desc')}</p>
-          <span>{t('dashboard.scan_msg_btn')} <ArrowRight size={16} /></span>
+          <span>
+            {t('dashboard.scan_msg_btn')} <ArrowRight size={16} />
+          </span>
         </button>
 
         <button
@@ -144,7 +257,9 @@ function Dashboard({ onNavigate }: DashboardProps) {
           <Link size={30} />
           <h3>{t('dashboard.check_link_title')}</h3>
           <p>{t('dashboard.check_link_desc')}</p>
-          <span>{t('dashboard.check_link_btn')} <ArrowRight size={16} /></span>
+          <span>
+            {t('dashboard.check_link_btn')} <ArrowRight size={16} />
+          </span>
         </button>
 
         <button
@@ -154,7 +269,9 @@ function Dashboard({ onNavigate }: DashboardProps) {
           <ShieldCheck size={30} />
           <h3>{t('dashboard.human_review_title')}</h3>
           <p>{t('dashboard.human_review_desc')}</p>
-          <span>{t('dashboard.human_review_btn')} <ArrowRight size={16} /></span>
+          <span>
+            {t('dashboard.human_review_btn')} <ArrowRight size={16} />
+          </span>
         </button>
       </div>
 

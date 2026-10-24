@@ -16,7 +16,7 @@ import {
   ThumbsDown,
   Upload,
 } from 'lucide-react'
-import { API_BASE_URL } from '../../api'
+import { API_BASE_URL, dbLogger } from '../../api'
 import { useLanguage } from '../../context/LanguageContext'
 
 type Indicator = {
@@ -293,6 +293,8 @@ export default function ScamScanner() {
     setScan(null)
     setFeedbackSubmitted(null)
 
+    dbLogger.info('ScamScanner', `Initiating text scan [language=${language}]...`, message.trim())
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/scan`, {
         method: 'POST',
@@ -305,8 +307,10 @@ export default function ScamScanner() {
         throw new Error(data.error || 'Scan request failed.')
       }
 
+      dbLogger.success('ScamScanner', 'Scan analysis completed and saved to Supabase:', data)
       setScan(data as ScanResponse)
     } catch (err) {
+      dbLogger.error('ScamScanner', 'Text scan failed:', err)
       setError(err instanceof Error ? err.message : 'Scan failed.')
     } finally {
       setLoading(false)
@@ -325,6 +329,8 @@ export default function ScamScanner() {
     setScan(null)
     setFeedbackSubmitted(null)
 
+    dbLogger.info('ScamScanner', `Initiating vision/image scan [file=${imageFileName}]...`)
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/scan/image`, {
         method: 'POST',
@@ -337,11 +343,13 @@ export default function ScamScanner() {
         throw new Error(data.error || 'Vision analysis failed.')
       }
 
+      dbLogger.success('ScamScanner', 'Image scan completed and saved to Supabase:', data)
       setScan(data as ScanResponse)
       if (data.extracted_text) {
         setMessage(data.extracted_text)
       }
     } catch (err) {
+      dbLogger.error('ScamScanner', 'Image scan failed:', err)
       setError(err instanceof Error ? err.message : 'Image analysis failed.')
     } finally {
       setLoading(false)
