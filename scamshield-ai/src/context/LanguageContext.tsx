@@ -112,12 +112,19 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Case History
     'history.title': 'Case History',
-    'history.subtitle': 'Search, filter and export past scam detection records.',
-    'history.search_placeholder': 'Search scans by message keyword...',
+    'history.subtitle': 'Search, filter and export past scam detection records and checked links.',
+    'history.search_placeholder': 'Search by message content, URL, or domain...',
+    'history.tab_all': 'All History',
+    'history.tab_messages': 'Message Scans',
+    'history.tab_links': 'Link Checks',
+    'history.link_type': 'Link Check',
+    'history.scan_type': 'Message Scan',
+    'history.visit_link': 'Open Link',
+    'history.warnings_found': 'warnings detected',
     'history.export_csv': 'Export CSV',
     'history.print_report': 'Print Incident Report',
     'history.no_records': 'No scan records found.',
-    'history.delete_tooltip': 'Delete scan',
+    'history.delete_tooltip': 'Delete record',
     'history.disclaimer': 'Records are securely stored in your cloud database.',
 
     // Settings
@@ -239,12 +246,19 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Case History
     'history.title': 'केस इतिहास',
-    'history.subtitle': 'पिछले स्कैम स्कैन रिकॉर्ड खोजें, फ़िल्टर करें और रिपोर्ट डाउनलोड करें।',
-    'history.search_placeholder': 'संदेश के शब्दों से खोजें...',
+    'history.subtitle': 'पिछले स्कैम स्कैन रिकॉर्ड और जांची गई लिंक खोजें, फ़िल्टर करें और रिपोर्ट डाउनलोड करें।',
+    'history.search_placeholder': 'संदेश, लिंक या डोमेन के नाम से खोजें...',
+    'history.tab_all': 'सभी इतिहास',
+    'history.tab_messages': 'संदेश स्कैन',
+    'history.tab_links': 'लिंक जांच',
+    'history.link_type': 'लिंक जांच',
+    'history.scan_type': 'संदेश स्कैन',
+    'history.visit_link': 'लिंक खोलें',
+    'history.warnings_found': 'चेतावनी संकेत',
     'history.export_csv': 'CSV डाउनलोड करें',
     'history.print_report': 'घटना रिपोर्ट प्रिंट / PDF',
     'history.no_records': 'कोई स्कैन रिकॉर्ड नहीं मिला।',
-    'history.delete_tooltip': 'स्कैन हटाएं',
+    'history.delete_tooltip': 'रिकॉर्ड हटाएं',
     'history.disclaimer': 'रिकॉर्ड क्लाउड डेटाबेस में सुरक्षित संग्रहीत हैं।',
 
     // Settings
@@ -366,8 +380,15 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Case History
     'history.title': 'केस इतिहास',
-    'history.subtitle': 'मागील स्कॅम नोंदी शोधा, फिल्टर करा आणि अहवाल डाउनलोड करा.',
-    'history.search_placeholder': 'मेसेजमधील शब्दांनुसार शोधा...',
+    'history.subtitle': 'मागील स्कॅम नोंदी आणि तपासलेल्या लिंक्स शोधा, फिल्टर करा आणि अहवाल डाउनलोड करा.',
+    'history.search_placeholder': 'मेसेज, लिंक किंवा डोमेनच्या नावाने शोधा...',
+    'history.tab_all': 'सर्व इतिहास',
+    'history.tab_messages': 'संदेश स्कॅन',
+    'history.tab_links': 'लिंक तपासणी',
+    'history.link_type': 'लिंक तपासणी',
+    'history.scan_type': 'संदेश स्कॅन',
+    'history.visit_link': 'लिंक उघडा',
+    'history.warnings_found': 'धोक्याचे संकेत',
     'history.export_csv': 'CSV डाउनलोड करा',
     'history.print_report': 'घटना अहवाल प्रिंट / PDF',
     'history.no_records': 'कोणत्याही नोंदी आढळल्या नाहीत.',

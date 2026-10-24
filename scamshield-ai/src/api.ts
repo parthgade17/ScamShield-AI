@@ -135,6 +135,18 @@ export type CaseHistoryItem = {
   review_status?: string
 }
 
+export type LinkHistoryItem = {
+  id: number
+  url: string
+  domain: string | null
+  risk_score: number
+  risk_level: string
+  classification?: string
+  warnings?: string[]
+  signals?: string[]
+  created_at: string | null
+}
+
 /**
  * Query Supabase PostgREST directly for scan history
  */
@@ -178,6 +190,58 @@ export async function fetchHistoryFromSupabase(searchQuery?: string): Promise<Ca
   dbLogger.success(
     'Supabase Direct',
     `Retrieved ${mapped.length} scan records in ${latency}ms from Supabase`,
+    mapped
+  )
+  return mapped
+}
+
+/**
+ * Query Supabase PostgREST directly for link check history
+ */
+export async function fetchLinkHistoryFromSupabase(searchQuery?: string): Promise<LinkHistoryItem[]> {
+  dbLogger.info('Supabase Direct', 'Querying link_checks directly via PostgREST...')
+  const startTime = Date.now()
+
+  let url = `${SUPABASE_URL}/rest/v1/link_checks?select=*&order=id.desc&limit=50`
+  if (searchQuery && searchQuery.trim()) {
+    const clean = searchQuery.trim().replace(/[%_]/g, '')
+    url += `&or=(url.ilike.*${encodeURIComponent(clean)}*,domain.ilike.*${encodeURIComponent(clean)}*,risk_level.ilike.*${encodeURIComponent(clean)}*)`
+  }
+
+  const res = await fetchWithTimeout(url, { headers: SUPABASE_HEADERS }, 7000)
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Supabase link_checks returned HTTP ${res.status}: ${text}`)
+  }
+
+  const rows = (await res.json()) as Array<{
+    id: number
+    url: string
+    domain?: string
+    risk_score?: number
+    risk_level?: string
+    classification?: string
+    warnings?: string[]
+    signals?: string[]
+    created_at?: string
+  }>
+
+  const mapped: LinkHistoryItem[] = rows.map((r) => ({
+    id: r.id,
+    url: r.url,
+    domain: r.domain || null,
+    risk_score: typeof r.risk_score === 'number' ? r.risk_score : 0,
+    risk_level: r.risk_level || 'Low',
+    classification: r.classification || 'legitimate',
+    warnings: Array.isArray(r.warnings) ? r.warnings : [],
+    signals: Array.isArray(r.signals) ? r.signals : [],
+    created_at: r.created_at || null,
+  }))
+
+  const latency = Date.now() - startTime
+  dbLogger.success(
+    'Supabase Direct',
+    `Retrieved ${mapped.length} link check records in ${latency}ms from Supabase`,
     mapped
   )
   return mapped
@@ -310,6 +374,15 @@ if (typeof window !== 'undefined') {
     getHistory: async () => {
       try {
         const records = await fetchHistoryFromSupabase()
+        console.table(records)
+        return records
+      } catch (err) {
+        console.error(err)
+      }
+    },
+    getLinkHistory: async () => {
+      try {
+        const records = await fetchLinkHistoryFromSupabase()
         console.table(records)
         return records
       } catch (err) {

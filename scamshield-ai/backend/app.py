@@ -1717,15 +1717,59 @@ def check_link_endpoint():
 @app.get("/links/history")
 def link_history():
     try:
-        limit = min(50, max(1, request.args.get("limit", 20, type=int)))
-        records = LinkCheck.query.order_by(LinkCheck.created_at.desc()).limit(limit).all()
-        return jsonify({"items": [r.to_dict() for r in records]}), 200
+        limit = min(100, max(1, request.args.get("limit", 50, type=int)))
+        search_query = (request.args.get("q") or request.args.get("search") or "").strip()
+        risk_filter = (request.args.get("risk") or "").strip()
+
+        query = LinkCheck.query
+        if search_query:
+            query = query.filter(
+                db.or_(
+                    LinkCheck.url.ilike(f"%{search_query}%"),
+                    LinkCheck.domain.ilike(f"%{search_query}%"),
+                )
+            )
+        if risk_filter:
+            query = query.filter(LinkCheck.risk_level.ilike(risk_filter))
+
+        records = query.order_by(LinkCheck.created_at.desc()).limit(limit).all()
+        return jsonify({
+            "count": len(records),
+            "items": [r.to_dict() for r in records],
+        }), 200
     except Exception as exc:
         try:
             db.session.rollback()
         except Exception:
             pass
-        return jsonify({"items": []}), 200
+        print("[DATABASE] Link history retrieval failed:", type(exc).__name__)
+        return jsonify({"count": 0, "items": []}), 200
+    finally:
+        db.session.remove()
+
+
+@app.delete("/api/links/<int:link_id>")
+@app.delete("/links/<int:link_id>")
+def delete_link_check(link_id):
+    try:
+        record = db.session.get(LinkCheck, link_id)
+        if not record:
+            return jsonify({"error": "Link check record not found."}), 404
+
+        # Also cleanup corresponding Case records if any
+        if record.url:
+            for c in Case.query.filter_by(submitted_url=record.url).all():
+                db.session.delete(c)
+
+        db.session.delete(record)
+        db.session.commit()
+        return jsonify({"status": "ok", "message": f"Link check #{link_id} deleted."}), 200
+    except Exception as exc:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return jsonify({"error": "Failed to delete link check."}), 500
     finally:
         db.session.remove()
 
