@@ -2,6 +2,7 @@
 import os
 import re
 import json
+import uuid
 from pathlib import Path
 from datetime import datetime, timezone
 from urllib.parse import quote
@@ -90,6 +91,148 @@ DATABASE_STATUS = "not_checked"
 # =========================================================
 # 2. DATABASE MODELS
 # =========================================================
+
+class User(db.Model):
+    __tablename__ = "user"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(20), nullable=False, default="user")
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+
+class Case(db.Model):
+    __tablename__ = "case"
+
+    id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(24), unique=True, nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True, default=1)
+    case_type = db.Column(db.String(30), nullable=False)  # text_scan, image_scan, link_check
+    status = db.Column(db.String(30), nullable=False, default="new")
+    submitted_text = db.Column(db.Text, nullable=True)
+    submitted_url = db.Column(db.Text, nullable=True)
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    scan_result = db.relationship("ScanResult", backref="case", uselist=False, cascade="all, delete-orphan")
+    reviews = db.relationship("HumanReview", backref="case", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        created = self.created_at
+        if created and created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        return {
+            "id": self.id,
+            "public_id": self.public_id,
+            "case_type": self.case_type,
+            "status": self.status,
+            "submitted_text": self.submitted_text,
+            "submitted_url": self.submitted_url,
+            "created_at": created.isoformat() if created else None,
+            "scan_result": self.scan_result.to_dict() if self.scan_result else None,
+        }
+
+
+class ScanResult(db.Model):
+    __tablename__ = "scan_result"
+
+    id = db.Column(db.Integer, primary_key=True)
+    case_id = db.Column(db.Integer, db.ForeignKey("case.id"), unique=True, nullable=False)
+    classification = db.Column(db.String(40), nullable=False)
+    risk_level = db.Column(db.String(20), nullable=False)
+    risk_score = db.Column(db.Integer, nullable=True)
+    signals_json = db.Column(db.JSON, nullable=False, default=list)
+    recommended_actions_json = db.Column(db.JSON, nullable=False, default=list)
+    uncertainty = db.Column(db.String(500), nullable=True)
+    model_version = db.Column(db.String(80), nullable=False, default="rule+gemini-v2")
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    def to_dict(self):
+        created = self.created_at
+        if created and created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        return {
+            "id": self.id,
+            "case_id": self.case_id,
+            "classification": self.classification,
+            "risk_level": self.risk_level,
+            "risk_score": self.risk_score,
+            "signals": self.signals_json or [],
+            "recommended_actions": self.recommended_actions_json or [],
+            "uncertainty": self.uncertainty,
+            "model_version": self.model_version,
+            "created_at": created.isoformat() if created else None,
+        }
+
+
+class HumanReview(db.Model):
+    __tablename__ = "human_review"
+
+    id = db.Column(db.Integer, primary_key=True)
+    case_id = db.Column(db.Integer, db.ForeignKey("case.id"), nullable=False, index=True)
+    reviewer_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, default=1)
+    decision = db.Column(db.String(40), nullable=False)
+    notes = db.Column(db.String(2000), nullable=True)
+    reviewed_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    def to_dict(self):
+        reviewed = self.reviewed_at
+        if reviewed and reviewed.tzinfo is None:
+            reviewed = reviewed.replace(tzinfo=timezone.utc)
+        return {
+            "id": self.id,
+            "case_id": self.case_id,
+            "reviewer_id": self.reviewer_id,
+            "decision": self.decision,
+            "notes": self.notes,
+            "reviewed_at": reviewed.isoformat() if reviewed else None,
+        }
+
+
+class Notification(db.Model):
+    __tablename__ = "notification"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True, default=1)
+    title = db.Column(db.String(150), nullable=False)
+    message = db.Column(db.String(500), nullable=False)
+    is_read = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    def to_dict(self):
+        created = self.created_at
+        if created and created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "title": self.title,
+            "message": self.message,
+            "is_read": self.is_read,
+            "created_at": created.isoformat() if created else None,
+        }
+
 
 class ScanHistory(db.Model):
     __tablename__ = "scan_history"
@@ -216,8 +359,8 @@ class UserPreference(db.Model):
     __tablename__ = "user_settings"
 
     user_id = db.Column(db.Integer, primary_key=True, default=1)
-    language = db.Column(db.String(50), default="English")
-    theme = db.Column(db.String(20), default="light")
+    language = db.Column(db.String(10), default="English")
+    theme = db.Column(db.String(10), default="light")
     notifications_enabled = db.Column(db.Boolean, default=True)
     history_enabled = db.Column(db.Boolean, default=True)
 
@@ -232,24 +375,111 @@ class UserPreference(db.Model):
 
 
 # =========================================================
+# 2B. RELATIONAL SYNC HELPER
+# =========================================================
+
+def make_public_case_id():
+    return f"CASE-{uuid.uuid4().hex[:8].upper()}"
+
+
+def sync_case_and_result(
+    case_type: str,
+    submitted_text: str = None,
+    submitted_url: str = None,
+    risk_level: str = "Low",
+    risk_score: int = 0,
+    classification: str = None,
+    signals: list = None,
+    recommended_actions: list = None,
+    uncertainty: str = None,
+    model_version: str = "rule+gemini-v2",
+    user_id: int = 1,
+):
+    try:
+        norm_risk = (risk_level or "Low").capitalize()
+        if norm_risk not in ("Low", "Medium", "High"):
+            norm_risk = "High" if (risk_score or 0) >= 60 else "Medium" if (risk_score or 0) >= 25 else "Low"
+
+        status = "pending_review" if norm_risk in ("High", "Medium") else "new"
+
+        if not classification:
+            classification = (
+                "malicious_or_scam" if norm_risk == "High"
+                else "suspicious" if norm_risk == "Medium"
+                else "legitimate"
+            )
+
+        case = Case(
+            public_id=make_public_case_id(),
+            user_id=user_id,
+            case_type=case_type,
+            status=status,
+            submitted_text=submitted_text,
+            submitted_url=submitted_url,
+        )
+        db.session.add(case)
+        db.session.flush()
+
+        scan_res = ScanResult(
+            case_id=case.id,
+            classification=classification[:40],
+            risk_level=norm_risk[:20],
+            risk_score=int(risk_score) if risk_score is not None else 0,
+            signals_json=signals or [],
+            recommended_actions_json=recommended_actions or [],
+            uncertainty=(uncertainty or "")[:500] if uncertainty else None,
+            model_version=(model_version or "rule+gemini-v2")[:80],
+        )
+        db.session.add(scan_res)
+
+        # Generate alert notification in DB for High/Medium threat
+        if norm_risk in ("High", "Medium"):
+            title = f"{norm_risk} Risk Alert: {case_type.replace('_', ' ').title()}"
+            preview = (submitted_text or submitted_url or "Item scanned")[:120].strip()
+            notif = Notification(
+                user_id=user_id,
+                title=title[:150],
+                message=f"Threat score {risk_score}/100 detected for: {preview}"[:500],
+                is_read=False,
+            )
+            db.session.add(notif)
+
+        return case
+    except Exception as exc:
+        print(f"[SYNC_CASE] Warning: Relational sync encountered issue: {exc}")
+        return None
+
+
+# =========================================================
 # 3. DATABASE INITIALIZATION
 # =========================================================
 
 def initialize_database():
     global DATABASE_STATUS
 
-    # IMPORTANT: keep both the database operation and rollback
-    # inside the Flask application context.
     with app.app_context():
         try:
             db.create_all()
+
+            # Ensure default user id=1 exists
+            user = db.session.get(User, 1)
+            if not user:
+                user = User(
+                    id=1,
+                    name="ScamShield User",
+                    email="user@scamshield.ai",
+                    password_hash="pbkdf2:sha256:default",
+                    role="user",
+                )
+                db.session.add(user)
+                db.session.commit()
 
             db.session.execute(text("SELECT 1"))
             db.session.commit()
 
             DATABASE_STATUS = "connected"
             print("[DATABASE] Connection successful.")
-            print("[DATABASE] Table scan_history is ready.")
+            print("[DATABASE] Supabase tables case, scan_result, human_review, notification, scan_history ready.")
 
         except Exception as exc:
             try:
@@ -258,14 +488,8 @@ def initialize_database():
                 pass
 
             DATABASE_STATUS = "unavailable"
-
-            # Never print credentials or the connection URL.
             print("[DATABASE] Connection failed.")
-            print("[DATABASE] Error type:", type(exc).__name__)
-            print(
-                "[DATABASE] Check your host, port, username, "
-                "password, SSL and DATABASE_URL."
-            )
+            print("[DATABASE] Error type:", type(exc).__name__, exc)
 
         finally:
             db.session.remove()
@@ -863,22 +1087,39 @@ def scan_message():
     result["scan_id"] = None
 
     try:
+        norm_risk = result["risk_level"]
         record = ScanHistory(
             message=message,
             risk_score=result["risk_score"],
-            risk_level=result["risk_level"],
+            risk_level=norm_risk,
             explanation=result["explanation"],
             indicators=result["indicators"],
             recommendations=result["recommendations"],
             detection_method=result["detection_method"],
             ai_model=result["ai_model"],
+            review_status="pending" if norm_risk in ("High", "Medium") else "not_required",
         )
 
         db.session.add(record)
+
+        # Dual sync to case & scan_result & notification
+        case_rec = sync_case_and_result(
+            case_type="text_scan",
+            submitted_text=message,
+            risk_level=norm_risk,
+            risk_score=result["risk_score"],
+            classification="malicious_or_scam" if norm_risk == "High" else "suspicious" if norm_risk == "Medium" else "legitimate",
+            signals=result["indicators"],
+            recommended_actions=result["recommendations"],
+            model_version=result.get("detection_method", "rule+gemini-v2"),
+        )
+
         db.session.commit()
 
         result["saved"] = True
         result["scan_id"] = record.id
+        if case_rec:
+            result["case_public_id"] = case_rec.public_id
 
     except Exception as exc:
         try:
@@ -886,7 +1127,7 @@ def scan_message():
         except Exception:
             pass
 
-        print("[DATABASE] Scan could not be saved:", type(exc).__name__)
+        print("[DATABASE] Scan could not be saved:", type(exc).__name__, exc)
 
     finally:
         db.session.remove()
@@ -1000,25 +1241,43 @@ def scan_image():
     result["ai_model"] = GEMINI_MODEL
 
     try:
+        norm_risk = result.get("risk_level", "Low")
+        extracted_txt = result.get("extracted_text") or "Screenshot Analysis"
         record = ScanHistory(
-            message=result.get("extracted_text") or "Screenshot Analysis",
+            message=extracted_txt,
             risk_score=int(result.get("risk_score", 0)),
-            risk_level=result.get("risk_level", "Low"),
+            risk_level=norm_risk,
             explanation=result.get("explanation", ""),
             indicators=result.get("indicators", []),
             recommendations=result.get("recommendations", []),
             detection_method="gemini_vision",
             ai_model=GEMINI_MODEL,
+            review_status="pending" if norm_risk in ("High", "Medium") else "not_required",
         )
         db.session.add(record)
+
+        case_rec = sync_case_and_result(
+            case_type="image_scan",
+            submitted_text=extracted_txt,
+            risk_level=norm_risk,
+            risk_score=int(result.get("risk_score", 0)),
+            classification="malicious_or_scam" if norm_risk == "High" else "suspicious" if norm_risk == "Medium" else "legitimate",
+            signals=result.get("indicators", []),
+            recommended_actions=result.get("recommendations", []),
+            model_version=f"gemini_vision-{GEMINI_MODEL}",
+        )
+
         db.session.commit()
         result["scan_id"] = record.id
+        if case_rec:
+            result["case_public_id"] = case_rec.public_id
         result["saved"] = True
     except Exception as exc:
         try:
             db.session.rollback()
         except Exception:
             pass
+        print("[DATABASE] Image scan save error:", type(exc).__name__, exc)
         result["scan_id"] = None
         result["saved"] = False
     finally:
@@ -1103,6 +1362,11 @@ def delete_scan(scan_id):
         if not record:
             return jsonify({"error": "Scan record not found."}), 404
 
+        # Remove corresponding case records
+        if record.message:
+            for c in Case.query.filter_by(submitted_text=record.message).all():
+                db.session.delete(c)
+
         db.session.delete(record)
         db.session.commit()
         return jsonify({"message": f"Scan #{scan_id} deleted successfully."}), 200
@@ -1111,7 +1375,7 @@ def delete_scan(scan_id):
             db.session.rollback()
         except Exception:
             pass
-        print("[DATABASE] Delete failed:", type(exc).__name__)
+        print("[DATABASE] Delete failed:", type(exc).__name__, exc)
         return jsonify({"error": "Could not delete scan."}), 500
     finally:
         db.session.remove()
@@ -1124,46 +1388,79 @@ def delete_scan(scan_id):
 @app.get("/api/dashboard/stats")
 def dashboard_stats():
     try:
-        total_scans = db.session.query(db.func.count(ScanHistory.id)).scalar() or 0
-        high_risk = (
+        total_message_scans = db.session.query(db.func.count(ScanHistory.id)).scalar() or 0
+        total_link_checks = db.session.query(db.func.count(LinkCheck.id)).scalar() or 0
+        total_case_records = db.session.query(db.func.count(Case.id)).scalar() or 0
+
+        total_scans = max(total_message_scans + total_link_checks, total_case_records)
+
+        high_risk_messages = (
             db.session.query(db.func.count(ScanHistory.id))
-            .filter(ScanHistory.risk_level == "High")
+            .filter(db.func.lower(ScanHistory.risk_level) == "high")
             .scalar()
             or 0
         )
+        high_risk_links = (
+            db.session.query(db.func.count(LinkCheck.id))
+            .filter(db.func.lower(LinkCheck.risk_level) == "high")
+            .scalar()
+            or 0
+        )
+        high_risk = high_risk_messages + high_risk_links
+
         pending_reviews = (
             db.session.query(db.func.count(ScanHistory.id))
             .filter(
-                ScanHistory.risk_level.in_(["High", "Medium"]),
-                ScanHistory.review_decision.is_(None),
+                db.func.lower(ScanHistory.risk_level).in_(["high", "medium"]),
+                db.or_(
+                    ScanHistory.review_decision.is_(None),
+                    ScanHistory.review_decision == "",
+                    ScanHistory.review_status == "pending",
+                ),
             )
             .scalar()
             or 0
         )
-        cases_reviewed = (
+
+        reviewed_in_hr = db.session.query(db.func.count(HumanReview.id)).scalar() or 0
+        reviewed_in_sh = (
             db.session.query(db.func.count(ScanHistory.id))
-            .filter(ScanHistory.review_decision.isnot(None))
+            .filter(
+                ScanHistory.review_decision.isnot(None),
+                ScanHistory.review_decision != "",
+            )
             .scalar()
             or 0
         )
-        total_links = db.session.query(db.func.count(LinkCheck.id)).scalar() or 0
+        cases_reviewed = max(reviewed_in_hr, reviewed_in_sh)
+
+        unread_notifications = (
+            db.session.query(db.func.count(Notification.id))
+            .filter_by(is_read=False)
+            .scalar()
+            or 0
+        )
 
         return jsonify({
             "total_scans": total_scans,
+            "total_messages": total_message_scans,
+            "total_links": total_link_checks,
             "high_risk": high_risk,
             "pending_reviews": pending_reviews,
             "cases_reviewed": cases_reviewed,
-            "total_links": total_links,
+            "notifications_unread": unread_notifications,
             "status": "ok",
         }), 200
     except Exception as exc:
-        print("[DATABASE] Stats query failed:", type(exc).__name__)
+        print("[DATABASE] Stats query failed:", type(exc).__name__, exc)
         return jsonify({
             "total_scans": 0,
+            "total_messages": 0,
+            "total_links": 0,
             "high_risk": 0,
             "pending_reviews": 0,
             "cases_reviewed": 0,
-            "total_links": 0,
+            "notifications_unread": 0,
             "status": "degraded",
         }), 200
     finally:
@@ -1175,7 +1472,50 @@ def dashboard_stats():
 # =========================================================
 
 SHORTENERS = {"bit.ly", "tinyurl.com", "t.co", "is.gd", "cutt.ly", "rb.gy", "goo.gl", "ow.ly"}
-SUSPICIOUS_URL_KEYWORDS = ("login", "verify", "secure", "update", "wallet", "kyc", "payment", "account", "banking", "free-claim", "airdrop")
+
+RISKY_TLDS = {
+    "xyz", "top", "click", "link", "club", "work", "rest", "buzz", "cam",
+    "zip", "online", "site", "vip", "icu", "fun", "space", "cfd", "sbs",
+    "tokyo", "monster", "cc", "ru", "su", "fit", "tk", "ml", "ga", "gq",
+    "pw", "loan", "win", "stream", "download", "racing", "kim", "date",
+    "wang", "bid", "men"
+}
+
+OFFICIAL_BRAND_DOMAINS = {
+    "sbi": ["sbi.co.in", "onlinesbi.sbi", "onlinesbi.com", "statebankofindia.com"],
+    "yono": ["onlinesbi.sbi", "sbi.co.in"],
+    "hdfc": ["hdfcbank.com", "hdfc.com"],
+    "icici": ["icicibank.com", "icicibank.in"],
+    "axis": ["axisbank.com", "axisbank.in"],
+    "pnb": ["pnbindia.in", "pnb.com.in"],
+    "bob": ["bankofbaroda.in", "bob.bank.in"],
+    "canara": ["canarabank.com", "canarabank.in"],
+    "kotak": ["kotak.com", "kotakbank.com"],
+    "paytm": ["paytm.com", "paytmbank.com"],
+    "phonepe": ["phonepe.com"],
+    "gpay": ["google.com", "pay.google.com"],
+    "google": ["google.com", "google.co.in"],
+    "bhim": ["bhimupi.org.in", "npci.org.in"],
+    "aadhaar": ["uidai.gov.in"],
+    "uidai": ["uidai.gov.in"],
+    "incometax": ["incometax.gov.in", "incometaxindia.gov.in"],
+    "epfo": ["epfindia.gov.in"],
+    "trai": ["trai.gov.in"],
+    "jio": ["jio.com"],
+    "airtel": ["airtel.in", "airtel.com"],
+    "vi": ["myvi.in"],
+    "bsnl": ["bsnl.co.in"],
+    "tatapower": ["tatapower.com", "tatapower-ddl.com"],
+}
+
+SUSPICIOUS_URL_KEYWORDS = (
+    "login", "verify", "secure", "update", "wallet", "kyc", "payment",
+    "account", "banking", "free-claim", "airdrop", "bill", "refund", "support",
+    "card", "otp", "rewards", "cashback", "pan", "kyc-update", "netbanking",
+    "claim", "free-recharge", "electricity", "cut-off", "arrears", "disconnection"
+)
+
+DANGEROUS_EXTENSIONS = (".apk", ".exe", ".bat", ".vbs", ".msi", ".scr", ".jar", ".zip")
 
 def analyze_url_heuristics(url_str):
     value = url_str.strip()
@@ -1201,40 +1541,90 @@ def analyze_url_heuristics(url_str):
                 "domain": "",
             }
 
+        # 1. Scheme Check
         if parsed.scheme != "https":
             warnings.append("The link does not use secure HTTPS encryption.")
             signals.append("unencrypted_http")
             score += 25
 
+        # 2. Raw IP Host Check
         if re.match(r"^\d{1,3}(\.\d{1,3}){3}$", host):
-            warnings.append("The link uses a raw IP address instead of a domain name.")
+            warnings.append("The link uses a raw IP address instead of a registered domain name.")
             signals.append("ip_host")
             score += 35
 
+        # 3. Punycode (IDN Homograph) Check
         if "xn--" in host:
             warnings.append("The domain uses internationalized punycode encoding that may mimic known brands.")
             signals.append("punycode_domain")
-            score += 25
+            score += 30
 
-        if parsed.username or parsed.password:
-            warnings.append("The URL contains embedded login credentials designed to obscure the actual destination.")
+        # 4. Userinfo / @ Trick Check
+        if parsed.username or parsed.password or "@" in value.split("?")[0]:
+            warnings.append("The URL contains an embedded @ symbol or credentials designed to obscure destination.")
             signals.append("userinfo_present")
             score += 40
 
+        # 5. URL Shorteners Check
         if host in SHORTENERS:
             warnings.append("A URL shortener obscures the real final destination.")
             signals.append("shortener_domain")
             score += 20
+
+        # 6. Risky TLD Check (.xyz, .top, .click, etc.)
+        tld = host.split(".")[-1] if "." in host else ""
+        if tld in RISKY_TLDS:
+            warnings.append(f"The domain uses a high-risk top-level domain (.{tld}) frequently used in phishing campaigns.")
+            signals.append(f"risky_tld_{tld}")
+            score += 35
+
+        # 7. Brand Impersonation Check (SBI, HDFC, Paytm, etc. on non-official domains)
+        brand_impersonated = None
+        for brand, official_hosts in OFFICIAL_BRAND_DOMAINS.items():
+            if re.search(r'(^|[-._])' + re.escape(brand) + r'([-._]|$)', host):
+                is_official = any(host == off or host.endswith("." + off) for off in official_hosts)
+                if not is_official:
+                    brand_impersonated = brand
+                    warnings.append(f"The link appears to impersonate '{brand.upper()}' on an unverified, third-party domain.")
+                    signals.append(f"brand_impersonation_{brand}")
+                    score += 45
+                    break
+
+        # 8. Dangerous File Download Check (.apk, .exe, etc.)
+        if any(parsed.path.lower().endswith(ext) for ext in DANGEROUS_EXTENSIONS):
+            warnings.append("The link directly downloads an executable or mobile app package (.apk), a prime malware vector.")
+            signals.append("dangerous_file_download")
+            score += 50
+
+        # 9. Hyphen and Subdomain Typosquatting
+        if host.count("-") >= 2:
+            warnings.append("The domain name contains multiple hyphens, a technique frequently used in brand typosquatting.")
+            signals.append("excessive_hyphens")
+            score += 15
+
+        if host.count(".") >= 3:
+            warnings.append("The link contains an excessive number of subdomains.")
+            signals.append("excessive_subdomains")
+            score += 15
 
         if len(host) > 55:
             warnings.append("The domain name is unusually long.")
             signals.append("excessive_host_length")
             score += 15
 
-        if any(term in (host + parsed.path).lower() for term in SUSPICIOUS_URL_KEYWORDS):
-            warnings.append("The link contains sensitive keywords (banking, verify, payment, or wallet).")
-            signals.append("sensitive_term")
-            score += 15
+        # 10. Sensitive Deceptive Action Keywords
+        matched_kws = [kw for kw in SUSPICIOUS_URL_KEYWORDS if kw in (host + parsed.path).lower()]
+        if matched_kws:
+            warnings.append(f"The link contains sensitive action keywords ({', '.join(matched_kws[:3])}).")
+            signals.append("sensitive_terms")
+            score += 20
+
+        # Compound Threat Synergy
+        if brand_impersonated and (tld in RISKY_TLDS or matched_kws or host.count("-") >= 2):
+            score = max(score, 85)
+
+        if any(parsed.path.lower().endswith(ext) for ext in DANGEROUS_EXTENSIONS):
+            score = max(score, 90)
 
     except Exception:
         warnings.append("URL syntax could not be parsed safely.")
@@ -1285,15 +1675,30 @@ def check_link_endpoint():
 
     try:
         db.session.add(record)
+
+        # Dual sync to case & scan_result & notification
+        case_rec = sync_case_and_result(
+            case_type="link_check",
+            submitted_url=url,
+            risk_level=analysis["risk_level"],
+            risk_score=analysis["risk_score"],
+            classification=analysis["classification"],
+            signals=(analysis.get("warnings") or []) + (analysis.get("signals") or []),
+            recommended_actions=["Do not open untrusted links or enter personal credentials"] if analysis["risk_level"] in ("High", "Medium") else ["Always verify full destination URL before entering personal details"],
+            model_version="url-heuristics-v2",
+        )
+
         db.session.commit()
         analysis["id"] = record.id
+        if case_rec:
+            analysis["case_public_id"] = case_rec.public_id
         analysis["saved"] = True
     except Exception as exc:
         try:
             db.session.rollback()
         except Exception:
             pass
-        print("[DATABASE] Link check save error:", type(exc).__name__)
+        print("[DATABASE] Link check save error:", type(exc).__name__, exc)
         analysis["id"] = None
         analysis["saved"] = False
     finally:
@@ -1325,12 +1730,15 @@ def link_history():
 @app.get("/api/reviews")
 def get_review_queue():
     try:
-        # Prioritize scans requiring review (High/Medium risk and pending review)
         records = (
             ScanHistory.query
             .filter(
-                ScanHistory.risk_level.in_(["High", "Medium"]),
-                ScanHistory.review_decision.is_(None)
+                db.func.lower(ScanHistory.risk_level).in_(["high", "medium"]),
+                db.or_(
+                    ScanHistory.review_decision.is_(None),
+                    ScanHistory.review_decision == "",
+                    ScanHistory.review_status == "pending"
+                )
             )
             .order_by(ScanHistory.created_at.desc())
             .limit(30)
@@ -1346,44 +1754,124 @@ def get_review_queue():
             db.session.rollback()
         except Exception:
             pass
-        print("[DATABASE] Review queue error:", type(exc).__name__)
+        print("[DATABASE] Review queue error:", type(exc).__name__, exc)
         return jsonify({"count": 0, "cases": []}), 200
     finally:
         db.session.remove()
 
 
-@app.post("/api/reviews/<int:scan_id>")
-def submit_review(scan_id):
+@app.post("/api/reviews/<path:scan_id_or_ref>")
+def submit_review(scan_id_or_ref):
     data = request.get_json(silent=True) or {}
     decision = (data.get("decision") or "").strip()
     notes = (data.get("notes") or "").strip()
 
-    valid_decisions = {"Confirmed Scam", "Likely Legitimate", "Inconclusive"}
+    valid_decisions = {
+        "Confirmed Scam", "Likely Legitimate", "Inconclusive",
+        "confirmed_scam", "likely_legitimate", "inconclusive"
+    }
     if decision not in valid_decisions:
-        return jsonify({"error": f"Invalid decision. Choose from: {', '.join(valid_decisions)}"}), 400
+        return jsonify({"error": "Invalid decision. Choose from: Confirmed Scam, Likely Legitimate, Inconclusive"}), 400
+
+    decision_formatted = decision.replace("_", " ").title()
 
     try:
-        record = db.session.get(ScanHistory, scan_id)
-        if not record:
-            return jsonify({"error": "Scan case not found."}), 404
+        scan_record = None
+        case_record = None
 
-        record.review_status = "reviewed"
-        record.review_decision = decision
-        record.reviewed_at = datetime.now(timezone.utc)
-        record.review_notes = notes
+        if str(scan_id_or_ref).isdigit():
+            scan_id = int(scan_id_or_ref)
+            scan_record = db.session.get(ScanHistory, scan_id)
+            if scan_record:
+                case_record = Case.query.filter_by(submitted_text=scan_record.message).order_by(Case.id.desc()).first()
+        else:
+            case_record = Case.query.filter_by(public_id=scan_id_or_ref).first()
+            if case_record and case_record.submitted_text:
+                scan_record = ScanHistory.query.filter_by(message=case_record.submitted_text).order_by(ScanHistory.id.desc()).first()
+
+        now = datetime.now(timezone.utc)
+
+        if scan_record:
+            scan_record.review_status = "reviewed"
+            scan_record.review_decision = decision_formatted
+            scan_record.reviewed_at = now
+            scan_record.review_notes = notes
+
+        if not case_record and scan_record:
+            case_record = Case(
+                public_id=make_public_case_id(),
+                user_id=1,
+                case_type="text_scan",
+                status="reviewed",
+                submitted_text=scan_record.message,
+            )
+            db.session.add(case_record)
+            db.session.flush()
+
+        if case_record:
+            case_record.status = "reviewed"
+            review_entry = HumanReview(
+                case_id=case_record.id,
+                reviewer_id=1,
+                decision=decision_formatted,
+                notes=notes,
+                reviewed_at=now,
+            )
+            db.session.add(review_entry)
 
         db.session.commit()
+
         return jsonify({
             "message": "Review recorded successfully.",
-            "case": record.to_dict(),
+            "decision": decision_formatted,
+            "case": scan_record.to_dict() if scan_record else {"id": case_record.id if case_record else None},
         }), 200
     except Exception as exc:
         try:
             db.session.rollback()
         except Exception:
             pass
-        print("[DATABASE] Review submit error:", type(exc).__name__)
+        print("[DATABASE] Review submit error:", type(exc).__name__, exc)
         return jsonify({"error": "Could not save review decision."}), 500
+    finally:
+        db.session.remove()
+
+
+# =========================================================
+# 13B. NOTIFICATIONS
+# =========================================================
+
+@app.get("/api/notifications")
+def get_notifications():
+    try:
+        limit = min(50, max(1, request.args.get("limit", 20, type=int)))
+        notifs = Notification.query.order_by(Notification.created_at.desc()).limit(limit).all()
+        return jsonify({
+            "count": len(notifs),
+            "notifications": [n.to_dict() for n in notifs],
+        }), 200
+    except Exception as exc:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return jsonify({"count": 0, "notifications": []}), 200
+    finally:
+        db.session.remove()
+
+
+@app.post("/api/notifications/read-all")
+def mark_notifications_read():
+    try:
+        Notification.query.filter_by(is_read=False).update({"is_read": True})
+        db.session.commit()
+        return jsonify({"status": "ok", "message": "All notifications marked as read."}), 200
+    except Exception as exc:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return jsonify({"error": "Could not update notifications."}), 500
     finally:
         db.session.remove()
 
@@ -1435,9 +1923,9 @@ def update_settings():
             db.session.add(pref)
 
         if "language" in data:
-            pref.language = str(data["language"])[:50]
+            pref.language = str(data["language"])[:10]
         if "theme" in data:
-            pref.theme = str(data["theme"])[:20]
+            pref.theme = str(data["theme"])[:10]
         if "notifications_enabled" in data:
             pref.notifications_enabled = bool(data["notifications_enabled"])
         if "history_enabled" in data:
