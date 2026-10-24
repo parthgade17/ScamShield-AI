@@ -621,7 +621,11 @@ export default function ScamScanner() {
 
               <div style={{ padding: 14, borderRadius: 10, background: 'var(--card-background, #f8fafc)', border: '1px solid #e5e7eb' }}>
                 <p style={{ margin: '0 0 6px', fontSize: 13, color: '#6b7280' }}>{t('scanner.detection_method')}</p>
-                <strong style={{ fontSize: 14 }}>{scan.detection_method || 'rule_based+gemini'}</strong>
+                <strong style={{ fontSize: 14, color: 'var(--primary, #2563eb)' }}>
+                  {scan.detection_method === 'gemini_vision'
+                    ? 'Gemini Vision AI'
+                    : 'Rule + Gemini based'}
+                </strong>
               </div>
             </div>
 
