@@ -7,12 +7,12 @@ import {
   Sun,
   Globe,
   Save,
-  ShieldCheck,
   AlertCircle,
   Loader2,
+  ShieldCheck,
 } from 'lucide-react'
 import { API_BASE_URL } from '../../api'
-import { useLanguage, type Language } from '../../context/LanguageContext'
+import { useLanguage, AVAILABLE_LANGUAGES, type Language } from '../../context/LanguageContext'
 
 type SettingsProps = {
   darkMode: boolean
@@ -164,9 +164,11 @@ export default function Settings({
               setStatus('')
             }}
           >
-            <option value="English">English</option>
-            <option value="Hindi">हिन्दी (Hindi)</option>
-            <option value="Marathi">मराठी (Marathi)</option>
+            {AVAILABLE_LANGUAGES.map((lang) => (
+              <option key={lang.value} value={lang.value}>
+                {lang.label}
+              </option>
+            ))}
           </select>
         </section>
 

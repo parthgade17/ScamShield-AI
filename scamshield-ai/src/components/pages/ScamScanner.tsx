@@ -110,14 +110,21 @@ export default function ScamScanner() {
       recognition.continuous = false
       recognition.interimResults = false
 
-      // Match recognition language to active rural/regional language
-      if (language === 'Hindi') {
-        recognition.lang = 'hi-IN'
-      } else if (language === 'Marathi') {
-        recognition.lang = 'mr-IN'
-      } else {
-        recognition.lang = 'en-IN'
+      // Match recognition language to active language
+      const speechLangMap: Record<string, string> = {
+        English: 'en-IN',
+        Hindi: 'hi-IN',
+        Marathi: 'mr-IN',
+        Tamil: 'ta-IN',
+        Telugu: 'te-IN',
+        Kannada: 'kn-IN',
+        Malayalam: 'ml-IN',
+        Gujarati: 'gu-IN',
+        Rajasthani: 'hi-IN',
+        Nepali: 'ne-NP',
+        Assamese: 'as-IN',
       }
+      recognition.lang = speechLangMap[language] || 'en-IN'
 
       recognition.onstart = () => {
         setIsListening(true)
@@ -148,7 +155,7 @@ export default function ScamScanner() {
     }
   }
 
-  // --- Voice Read Aloud (Text-to-Speech in English, Hindi, or Marathi) ---
+  // --- Voice Read Aloud (Text-to-Speech in 11 Regional Languages) ---
   function toggleReadAloud() {
     if (!scan) return
 
@@ -162,36 +169,87 @@ export default function ScamScanner() {
     let textToRead = ''
     let langTag = 'en-IN'
 
-    if (language === 'Hindi') {
-      langTag = 'hi-IN'
-      const riskText =
-        scan.risk_level === 'High' ? 'उच्च' : scan.risk_level === 'Medium' ? 'मध्यम' : 'कम'
-      textToRead = `स्कैन परिणाम: जोखिम स्तर ${riskText} है, और जोखिम स्कोर 100 में से ${scan.risk_score ?? 0} है। `
-      if (scan.explanation) {
-        textToRead += `${scan.explanation} `
+    const risk = scan.risk_level || 'Low'
+    const score = scan.risk_score ?? 0
+    const explanation = scan.explanation ? `${scan.explanation} ` : ''
+    const firstRec = scan.recommendations && scan.recommendations.length > 0 ? scan.recommendations[0] : ''
+
+    switch (language) {
+      case 'Hindi': {
+        langTag = 'hi-IN'
+        const rTxt = risk === 'High' ? 'उच्च' : risk === 'Medium' ? 'मध्यम' : 'कम'
+        textToRead = `स्कैन परिणाम: जोखिम स्तर ${rTxt} है, और जोखिम स्कोर 100 में से ${score} है। ${explanation}`
+        if (firstRec) textToRead += `सुरक्षा सलाह: ${firstRec}`
+        break
       }
-      if (scan.recommendations && scan.recommendations.length > 0) {
-        textToRead += `सुरक्षा सलाह: ${scan.recommendations[0]}`
+      case 'Marathi': {
+        langTag = 'mr-IN'
+        const rTxt = risk === 'High' ? 'उच्च' : risk === 'Medium' ? 'मध्यम' : 'कमी'
+        textToRead = `स्कॅन निकाल: जोखीम पातळी ${rTxt} आहे, आणि जोखीम गुण 100 पैकी ${score} आहेत। ${explanation}`
+        if (firstRec) textToRead += `सुरक्षा सल्ला: ${firstRec}`
+        break
       }
-    } else if (language === 'Marathi') {
-      langTag = 'mr-IN'
-      const riskText =
-        scan.risk_level === 'High' ? 'उच्च' : scan.risk_level === 'Medium' ? 'मध्यम' : 'कमी'
-      textToRead = `स्कॅन निकाल: जोखीम पातळी ${riskText} आहे, आणि जोखीम गुण 100 पैकी ${scan.risk_score ?? 0} आहेत. `
-      if (scan.explanation) {
-        textToRead += `${scan.explanation} `
+      case 'Tamil': {
+        langTag = 'ta-IN'
+        const rTxt = risk === 'High' ? 'அதிகம்' : risk === 'Medium' ? 'நடுத்தரம்' : 'குறைவு'
+        textToRead = `ஸ்கேன் முடிவு: ஆபத்து நிலை ${rTxt}, ஆபத்து மதிப்பெண் 100க்கு ${score}. ${explanation}`
+        if (firstRec) textToRead += `பாதுகாப்பு பரிந்துரை: ${firstRec}`
+        break
       }
-      if (scan.recommendations && scan.recommendations.length > 0) {
-        textToRead += `सुरक्षा सल्ला: ${scan.recommendations[0]}`
+      case 'Telugu': {
+        langTag = 'te-IN'
+        const rTxt = risk === 'High' ? 'అధిక' : risk === 'Medium' ? 'మధ్యస్థ' : 'తక్కువ'
+        textToRead = `స్కాన్ ఫలితం: ప్రమాద స్థాయి ${rTxt}, ప్రమాద స్కోరు 100కి ${score}. ${explanation}`
+        if (firstRec) textToRead += `భద్రతా సలహా: ${firstRec}`
+        break
       }
-    } else {
-      langTag = 'en-IN'
-      textToRead = `Scan result: Risk level is ${scan.risk_level}, with a risk score of ${scan.risk_score ?? 0} out of 100. `
-      if (scan.explanation) {
-        textToRead += `${scan.explanation} `
+      case 'Kannada': {
+        langTag = 'kn-IN'
+        const rTxt = risk === 'High' ? 'ಹೆಚ್ಚು' : risk === 'Medium' ? 'ಮಧ್ಯಮ' : 'ಕಡಿಮೆ'
+        textToRead = `ಸ್ಕ್ಯಾನ್ ಫಲಿತಾಂಶ: ಅಪಾಯದ ಮಟ್ಟ ${rTxt}, ಅಪಾಯದ ಅಂಕ 100 ರಲ್ಲಿ ${score}. ${explanation}`
+        if (firstRec) textToRead += `ಸುರಕ್ಷತಾ ಸಲಹೆ: ${firstRec}`
+        break
       }
-      if (scan.recommendations && scan.recommendations.length > 0) {
-        textToRead += `Recommended action: ${scan.recommendations[0]}`
+      case 'Malayalam': {
+        langTag = 'ml-IN'
+        const rTxt = risk === 'High' ? 'ഉയർന്നത്' : risk === 'Medium' ? 'ഇടത്തരം' : 'കുറഞ്ഞത്'
+        textToRead = `സ്കാൻ ഫലം: അപകടസാധ്യത ${rTxt}, സ്കോർ 100-ൽ ${score}. ${explanation}`
+        if (firstRec) textToRead += `സുരക്ഷാ നിർദ്ദേശം: ${firstRec}`
+        break
+      }
+      case 'Gujarati': {
+        langTag = 'gu-IN'
+        const rTxt = risk === 'High' ? 'ઉચ્ચ' : risk === 'Medium' ? 'મધ્યમ' : 'ઓછું'
+        textToRead = `સ્કેન પરિણામ: જોખમ સ્તર ${rTxt} છે, અને જોખમ સ્કોર 100 માંથી ${score} છે. ${explanation}`
+        if (firstRec) textToRead += `સુરક્ષા સલાહ: ${firstRec}`
+        break
+      }
+      case 'Rajasthani': {
+        langTag = 'hi-IN'
+        const rTxt = risk === 'High' ? 'घणो' : risk === 'Medium' ? 'मध्यम' : 'कम'
+        textToRead = `स्कैन परिणाम: जोख़म स्तर ${rTxt} है, अर जोख़म स्कोर 100 मांय सूं ${score} है। ${explanation}`
+        if (firstRec) textToRead += `बचाव री सलाह: ${firstRec}`
+        break
+      }
+      case 'Nepali': {
+        langTag = 'ne-NP'
+        const rTxt = risk === 'High' ? 'उच्च' : risk === 'Medium' ? 'मध्यम' : 'कम'
+        textToRead = `स्क्यान नतिजा: जोखिम स्तर ${rTxt} छ, र जोखिम स्कोर १०० मा ${score} छ। ${explanation}`
+        if (firstRec) textToRead += `सुरक्षा सल्लाह: ${firstRec}`
+        break
+      }
+      case 'Assamese': {
+        langTag = 'as-IN'
+        const rTxt = risk === 'High' ? 'উচ্চ' : risk === 'Medium' ? 'মধ্যম' : 'কম'
+        textToRead = `স্কেন ফলাফল: বিপদৰ মাত্ৰা ${rTxt}, আৰু বিপদৰ স্ক'ৰ ১০০ ৰ ভিতৰত ${score}। ${explanation}`
+        if (firstRec) textToRead += `সুৰক্ষা পৰামৰ্শ: ${firstRec}`
+        break
+      }
+      default: {
+        langTag = 'en-IN'
+        textToRead = `Scan result: Risk level is ${risk}, with a risk score of ${score} out of 100. ${explanation}`
+        if (firstRec) textToRead += `Recommended action: ${firstRec}`
+        break
       }
     }
 
@@ -200,56 +258,33 @@ export default function ScamScanner() {
     utterance.rate = 0.95
     utterance.pitch = 1.0
 
-    // Voice selection with regional fallback
+    // Voice selection with regional matching and intelligent fallback
     const voices = window.speechSynthesis.getVoices()
-    if (language === 'Hindi') {
-      const hiVoice = voices.find(
-        (v) =>
-          v.lang.toLowerCase().startsWith('hi') ||
-          v.name.toLowerCase().includes('hindi') ||
-          v.name.includes('हिन्दी') ||
-          v.name.toLowerCase().includes('kalpana') ||
-          v.name.toLowerCase().includes('hemant')
-      )
-      if (hiVoice) {
-        utterance.voice = hiVoice
-      }
-    } else if (language === 'Marathi') {
-      // 1. Try to find native Marathi voice
-      const mrVoice = voices.find(
-        (v) =>
-          v.lang.toLowerCase().startsWith('mr') ||
-          v.name.toLowerCase().includes('marathi') ||
-          v.name.includes('मराठी') ||
-          v.name.toLowerCase().includes('aarohi')
-      )
-      if (mrVoice) {
-        utterance.voice = mrVoice
-      } else {
-        // 2. High-fidelity fallback: Hindi Devanagari voice accurately pronounces Marathi text
-        const hiFallback = voices.find(
+    const prefix = langTag.split('-')[0].toLowerCase()
+
+    let matchedVoice = voices.find((v) => v.lang.toLowerCase().startsWith(prefix))
+
+    // Fallbacks for regional Indian languages without a dedicated engine
+    if (!matchedVoice) {
+      if (['hi-IN', 'mr-IN', 'ne-NP'].includes(langTag) || language === 'Rajasthani') {
+        matchedVoice = voices.find(
           (v) =>
             v.lang.toLowerCase().startsWith('hi') ||
             v.name.toLowerCase().includes('hindi') ||
             v.name.includes('हिन्दी') ||
-            v.name.toLowerCase().includes('kalpana') ||
-            v.name.toLowerCase().includes('hemant')
+            v.name.toLowerCase().includes('kalpana')
         )
-        if (hiFallback) {
-          utterance.voice = hiFallback
-          utterance.lang = 'hi-IN'
-        }
+      } else {
+        matchedVoice = voices.find(
+          (v) =>
+            v.lang.toLowerCase().startsWith('en-in') ||
+            v.lang.toLowerCase().startsWith('en')
+        )
       }
-    } else {
-      const enVoice = voices.find(
-        (v) =>
-          v.lang.toLowerCase().startsWith('en-in') ||
-          v.lang.toLowerCase().startsWith('en-gb') ||
-          v.lang.toLowerCase().startsWith('en')
-      )
-      if (enVoice) {
-        utterance.voice = enVoice
-      }
+    }
+
+    if (matchedVoice) {
+      utterance.voice = matchedVoice
     }
 
     utterance.onend = () => setIsSpeaking(false)

@@ -24,7 +24,7 @@ import LinkChecker from './components/pages/LinkChecker'
 import HumanReview from './components/pages/HumanReview'
 import CaseHistory from './components/pages/CaseHistory'
 import Settings from './components/pages/Settings'
-import { useLanguage, type Language } from './context/LanguageContext'
+import { useLanguage, AVAILABLE_LANGUAGES, type Language } from './context/LanguageContext'
 
 import './App.css'
 
@@ -212,9 +212,11 @@ function App() {
                   color: 'inherit',
                 }}
               >
-                <option value="English">English</option>
-                <option value="Hindi">हिन्दी (Hindi)</option>
-                <option value="Marathi">मराठी (Marathi)</option>
+                {AVAILABLE_LANGUAGES.map((lang) => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
               </select>
             </div>
 

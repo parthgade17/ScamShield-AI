@@ -366,7 +366,7 @@ class UserPreference(db.Model):
     __tablename__ = "user_settings"
 
     user_id = db.Column(db.Integer, primary_key=True, default=1)
-    language = db.Column(db.String(10), default="English")
+    language = db.Column(db.String(30), default="English")
     theme = db.Column(db.String(10), default="light")
     notifications_enabled = db.Column(db.Boolean, default=True)
     history_enabled = db.Column(db.Boolean, default=True)
@@ -599,6 +599,20 @@ RULES = [
     ),
 ]
 
+SUPPORTED_LANGUAGES = (
+    "English",
+    "Hindi",
+    "Marathi",
+    "Tamil",
+    "Telugu",
+    "Kannada",
+    "Malayalam",
+    "Gujarati",
+    "Rajasthani",
+    "Nepali",
+    "Assamese",
+)
+
 DEFAULT_RECOMMENDATIONS = {
     "English": {
         "High": [
@@ -651,8 +665,143 @@ DEFAULT_RECOMMENDATIONS = {
             "संशयास्पद माहिती अधिकृत सूत्रांकडून पडताळून पहा.",
         ],
     },
+    "Tamil": {
+        "High": [
+            "எந்த இணைப்புகளையும் கிளிக் செய்யாதீர்கள் அல்லது பணம் அனுப்பாதீர்கள்.",
+            "உங்கள் OTP, PIN, CVV அல்லது கடவுச்சொற்களை யாரிடமும் பகிராதீர்கள்.",
+            "அமைப்பின் அதிகாரப்பூர்வ தொடர்பு எண் மூலம் சரிபார்க்கவும்.",
+            "பணம் இழந்திருந்தால் உடனடியாக வங்கி மற்றும் 1930 சைபர் ஹெல்ப்லைனை அழைக்கவும்.",
+        ],
+        "Medium": [
+            "பதிலளிக்கும் முன் அனுப்புநரை சுயாதீனமாக சரிபார்க்கவும்.",
+            "எதிர்பாராத இணைப்புகள் அல்லது கோப்புகளைத் திறப்பதைத் தவிர்க்கவும்.",
+            "வங்கி விவரங்கள் அல்லது OTP-ஐ பகிர வேண்டாம்.",
+        ],
+        "Low": [
+            "எதிர்பாராத செய்திகளில் எச்சரிக்கையாக இருக்கவும்.",
+            "சந்தேகத்திற்குரிய கூற்றுகளை அதிகாரப்பூர்வ சேனல்கள் மூலம் சரிபார்க்கவும்.",
+        ],
+    },
+    "Telugu": {
+        "High": [
+            "ఏ లింక్‌లను క్లిక్ చేయవద్దు లేదా డబ్బు పంపవద్దు.",
+            "మీ OTP, PIN, CVV లేదా పాస్‌వర్డ్‌లను ఎవరితోనూ పంచుకోవద్దు.",
+            "సంస్థ అధికారిక ఛానెల్ ద్వారా అభ్యర్థనను ధృవీకరించండి.",
+            "డబ్బు పోయినట్లయితే వెంటనే మీ బ్యాంక్ మరియు 1930 సైబర్ హెల్ప్‌లైన్‌ను సంప్రదించండి.",
+        ],
+        "Medium": [
+            "ప్రతిస్పందించే ముందు పంపినవారిని ధృవీకరించుకోండి.",
+            "తెలియని లింక్‌లు లేదా అటాచ్‌మెంట్‌లను తెరవడం నివారించండి.",
+            "బ్యాంకింగ్ ఆధారాలు లేదా OTPలను ఎప్పుడూ పంచుకోవద్దు.",
+        ],
+        "Low": [
+            "అనుకోని సందేశాలతో జాగ్రత్తగా ఉండండి.",
+            "అనుమానాస్పద వివరాలను అధికారిక ఛానెల్‌ల ద్వారా ధృవీకరించండి.",
+        ],
+    },
+    "Kannada": {
+        "High": [
+            "ಯಾವುದೇ ಲಿಂಕ್‌ಗಳನ್ನು ಕ್ಲಿಕ್ ಮಾಡಬೇಡಿ ಅಥವಾ ಹಣವನ್ನು ಕಳುಹಿಸಬೇಡಿ.",
+            "ನಿಮ್ಮ OTP, PIN, CVV ಅಥವಾ ಪಾಸ್‌ವರ್ಡ್‌ಗಳನ್ನು ಯಾರೊಂದಿಗೂ ಹಂಚಿಕೊಳ್ಳಬೇಡಿ.",
+            "ಸಂಸ್ಥೆಯ ಅಧಿಕೃತ ಸಹಾಯವಾಣಿಯ ಮೂಲಕ ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.",
+            "ಹಣ ಕಳೆದುಕೊಂಡಿದ್ದರೆ ತಕ್ಷಣ ನಿಮ್ಮ ಬ್ಯಾಂಕ್ ಮತ್ತು 1930 ಸೈಬರ್ ಸಹಾಯವಾಣಿಗೆ ಕರೆ ಮಾಡಿ.",
+        ],
+        "Medium": [
+            "ಪ್ರತಿಕ್ರಿಯಿಸುವ ಮೊದಲು ಕಳುಹಿಸುವವರ ವಿವರವನ್ನು ದೃಢೀಕರಿಸಿ.",
+            "ಅನಿರೀಕ್ಷಿತ ಲಿಂಕ್‌ಗಳು ಅಥವಾ ಫೈಲ್‌ಗಳನ್ನು ತೆರೆಯುವುದನ್ನು ತಪ್ಪಿಸಿ.",
+            "ಬ್ಯಾಂಕಿಂಗ್ ವಿವರಗಳು ಅಥವಾ OTP ಹಂಚಿಕೊಳ್ಳಬೇಡಿ.",
+        ],
+        "Low": [
+            "ಅಪರಿಚಿತ ಸಂದೇಶಗಳ ಬಗ್ಗೆ ಜಾಗರೂಕರಾಗಿರಿ.",
+            "ಅನುಮಾನಾಸ್ಪದ ಹಕ್ಕುಗಳನ್ನು ಅಧಿಕೃತ ಮೂಲಗಳ ಮೂಲಕ ಪರಿಶೀಲಿಸಿ.",
+        ],
+    },
+    "Malayalam": {
+        "High": [
+            "ലിങ്കുകളിൽ ക്ലിക്ക് ചെയ്യുകയോ പണം അയക്കുകയോ ചെയ്യരുത്.",
+            "നിങ്ങളുടെ OTP, PIN, CVV അല്ലെങ്കിൽ പാസ്‌വേഡ് ഒരിക്കലും പങ്കിടരുത്.",
+            "സ്ഥാപനത്തിന്റെ ഔദ്യോഗിക ചാനലുകൾ വഴി സ്ഥിരീകരിക്കുക.",
+            "പണം നഷ്ടപ്പെട്ടാൽ ഉടൻ ബാങ്കുമായും 1930 സൈബർ ഹെൽപ്പ്‌ലൈനുമായും ബന്ധപ്പെടുക.",
+        ],
+        "Medium": [
+            "മറുപടി നൽകുന്നതിന് മുൻപ് അയച്ചയാളെ സ്വതന്ത്രമായി സ്ഥിരീകരിക്കുക.",
+            "അപരിചിതമായ ലിങ്കുകളോ ഫയലുകളോ തുറക്കരുത്.",
+            "ബാങ്കിംഗ് വിവരങ്ങളോ ഒടിപിയോ ആരുമായും പങ്കിടരുത്.",
+        ],
+        "Low": [
+            "അപ്രതീക്ഷിത സന്ദേശങ്ങളിൽ ജാഗ്രത പാലിക്കുക.",
+            "സംശയാസ്പദമായ വിവരങ്ങൾ ഔദ്യോഗിക ചാനലുകൾ വഴി സ്ഥിരീകരിക്കുക.",
+        ],
+    },
+    "Gujarati": {
+        "High": [
+            "કોઈપણ લિંક પર ક્લિક કરશો નહીં અથવા પૈસા મોકલશો નહીં.",
+            "તમારો OTP, PIN, CVV કે પાસવર્ડ ક્યારેય કોઈને શેર કરશો નહીં.",
+            "સંસ્થાના સત્તાવાર હેલ્પલાઇન નંબર દ્વારા વિગતો ચકાસો.",
+            "જો પૈસા કપાઈ ગયા હોય, તો તરત જ બેંક અને 1930 સાયબર હેલ્પલાઇન પર સંપર્ક કરો.",
+        ],
+        "Medium": [
+            "જવાબ આપતાં પહેલાં મોકલનારની સત્તાવાર પુષ્ટિ કરો.",
+            "અજાણી લિંક્સ કે ફાઇલો ખોલવાનું ટાળો.",
+            "બેંકિંગ વિગતો કે OTP ક્યારેય શેર કરશો નહીં.",
+        ],
+        "Low": [
+            "અજાણ્યા મેસેજ અને ઑફર્સ પ્રત્યે સાવચેત રહો.",
+            "શંકાસ્પદ દાવાઓને સત્તાવાર સ્ત્રોતો દ્વારા ચકાસો.",
+        ],
+    },
+    "Rajasthani": {
+        "High": [
+            "कोई भी लिंक पर क्लिक मत करो और न ही रुपिया भेजो।",
+            "अपणो OTP, PIN, CVV या पासवर्ड कदे भी किणी सूं शेयर मत करो।",
+            "संबंधित बैंक या विभाग रा आधिकारिक नंबर पर फोन कर’र जांच करो।",
+            "जे रुपिया कट ग्या होवै, तो तुरंत बैंक और 1930 साइबर हेल्पलाइन पर शिकायत करो।",
+        ],
+        "Medium": [
+            "जवाव देवण सूं पैली भेजन वाळे री जांच पड़ताल करो।",
+            "अनजाण लिंक या फाइल कदे मत खोलो।",
+            "बैंक री जानकारी या OTP किणी ने भी मत देवो।",
+        ],
+        "Low": [
+            "अनजाण मेसेज और ऑफर बाबत सतर्क रहो।",
+            "शंका वाळी बातां री आधिकारिक स्रोत सूं पुष्टि करो।",
+        ],
+    },
+    "Nepali": {
+        "High": [
+            "कुनै पनि लिङ्कमा क्लिक नगर्नुहोस् वा पैसा नपठाउनुहोस्।",
+            "आफ्नो OTP, PIN, CVV वा पासवर्ड कसैसँग कहिल्यै साझा नगर्नुहोस्।",
+            "सम्बन्धित संस्थाको आधिकारिक फोन नम्बरबाट पुष्टि गर्नुहोस्।" ,
+            "यदि पैसा काटिएको छ भने तुरुन्तै आफ्नो बैंक र साइबर हेल्पलाइनमा सम्पर्क गर्नुहोस्।",
+        ],
+        "Medium": [
+            "जवाफ दिनु अघि पठाउने व्यक्तिको आधिकारिक पुष्टि गर्नुहोस्।",
+            "अपरिचित लिङ्क वा फाइलहरू नखोल्नुहोस्।",
+            "बैंकिङ विवरण वा OTP कसैलाई नदिनुहोस्।",
+        ],
+        "Low": [
+            "अपरिचित सन्देशहरू र अफरहरूप्रति सतर्क रहनुहोस्।",
+            "शंकास्पद दाबीहरू आधिकारिक स्रोतबाट पुष्टि गर्नुहोस्।",
+        ],
+    },
+    "Assamese": {
+        "High": [
+            "কোনো লিংকত ক্লিক নকৰিব বা টকা নিদিব।",
+            "আপোনাৰ OTP, PIN, CVV বা পাছৱৰ্ড কাৰো সৈতে ভাগ-বতৰা নকৰিব।",
+            "সংস্থাৰ চৰকাৰী বা আনুষ্ঠানিক চেনেলৰ জৰিয়তে পৰীক্ষা কৰক।",
+            "টকা কটা গ'লে লগে লগে বেংক আৰু 1930 চাইবাৰ হেল্পলাইনত যোগাযোগ কৰক।",
+        ],
+        "Medium": [
+            "উত্তৰ দিয়াৰ আগতে প্ৰেৰকজনক স্বতন্ত্ৰভাৱে পৰীক্ষা কৰক।",
+            "অপ্ৰত্যাশিত লিংক বা ফাইল খোলাৰ পৰা বিৰত থাকক।",
+            "বেংকৰ তথ্য বা OTP কাৰো লগত শ্বেয়াৰ নকৰিব।",
+        ],
+        "Low": [
+            "অপ্ৰত্যাশিত বা অচিনাকি বাৰ্তাবোৰৰ প্ৰতি সতৰ্ক থাকক।",
+            "সন্দেহজনক তথ্যসমূহ আনুষ্ঠানিক চেনেলৰ জৰিয়তে নিশ্চিত কৰক।",
+        ],
+    },
 }
-
 
 INDICATOR_TRANSLATIONS = {
     "Hindi": {
@@ -684,6 +833,126 @@ INDICATOR_TRANSLATIONS = {
         "Law enforcement impersonation threat": "डिजिटल अटक / पोलीस / सीबीआय तोतयागिरी (डिजिटल अरेस्ट)",
         "Task / Part-time employment scam": "पार्ट-टाइम जॉब / यूट्यूब लाईक टास्क घोटाळा (नोकरी घोटाळा)",
         "Malicious APK / Remote access software": "धोकादायक APK अ‍ॅप किंवा स्क्रीन शेअरिंग विनंती (AnyDesk)",
+    },
+    "Tamil": {
+        "Urgency or threat": "அவசரம் அல்லது அச்சுறுத்தல் செய்தி (Urgency / Threat)",
+        "Sensitive information request": "ரகசிய தகவல் (OTP/PIN/கடவுச்சொல்) கோரிக்கை",
+        "Suspicious payment request": "சந்தேகத்திற்குரிய கட்டண கோரிக்கை",
+        "Prize or unrealistic reward": "போலி லாட்டரி அல்லது பரிசு அறிவிப்பு",
+        "Suspicious link": "சந்தேகத்திற்குரிய இணைய இணைப்பு",
+        "Impersonation or verification": "அங்கீகரிக்கப்படாத அதிகாரி போல் ஆள்மாறாட்டம்",
+        "Remote access or unknown application": "ரிமோட் அணுகல் அல்லது தெரியாத APK செயலி",
+        "Utility disconnection extortion": "மின்சார இணைப்பு துண்டிப்பு அச்சுறுத்தல்",
+        "Advance-fee lottery fraud": "முன்பண கட்டண லாட்டரி மோசடி",
+        "Banking KYC credential phishing": "வங்கி கணக்கு முடக்கம் மற்றும் ஃபிஷிங் இணைப்பு",
+        "Law enforcement impersonation threat": "டிஜிட்டல் கைது / போலீஸ் மிரட்டல்",
+        "Task / Part-time employment scam": "பகுதி நேர வேலை / யூடியூப் லைக் மோசடி",
+        "Malicious APK / Remote access software": "தீங்கிழைக்கும் APK அல்லது திரை பகிர்வு கோரிக்கை",
+    },
+    "Telugu": {
+        "Urgency or threat": "అత్యవసర లేదా బెదిరింపు సందేశం (Urgency / Threat)",
+        "Sensitive information request": "సున్నితమైన సమాచారం (OTP/PIN/పాస్‌వర్డ్) అభ్యర్థన",
+        "Suspicious payment request": "అనుమానాస్పద చెల్లింపు అభ్యర్థన",
+        "Prize or unrealistic reward": "నకిలీ లాటరీ లేదా బహుమతి ఆఫర్",
+        "Suspicious link": "అనుమానాస్పద వెబ్ లింక్",
+        "Impersonation or verification": "నకిలీ అధికారి వేషధారణ",
+        "Remote access or unknown application": "రిమోట్ యాక్సెస్ లేదా తెలియని APK యాప్",
+        "Utility disconnection extortion": "విద్యుత్ సరఫరా నిలిపివేత బెదిరింపు",
+        "Advance-fee lottery fraud": "ముందస్తు రుసుము లాటరీ మోసం",
+        "Banking KYC credential phishing": "బ్యాంక్ ఖాతా బ్లాక్ మరియు ఫిషింగ్ లింక్",
+        "Law enforcement impersonation threat": "డిజిటల్ అరెస్ట్ / పోలీసుల బెదిరింపు",
+        "Task / Part-time employment scam": "పార్ట్-టైమ్ జాబ్ / యూట్యూబ్ లైక్ మోసం",
+        "Malicious APK / Remote access software": "హానికరమైన APK లేదా స్క్రీన్ షేరింగ్ సాఫ్ట్‌వేర్",
+    },
+    "Kannada": {
+        "Urgency or threat": "ತುರ್ತು ಅಥವಾ ಬೆದರಿಕೆ ಸಂದೇಶ (Urgency / Threat)",
+        "Sensitive information request": "ಸೂಕ್ಷ್ಮ ಮಾಹಿತಿ (OTP/PIN/ಪಾಸ್‌ವರ್ಡ್) ವಿನಂತಿ",
+        "Suspicious payment request": "ಅನುಮಾನಾಸ್ಪದ ಹಣ ಪಾವತಿ ವಿನಂತಿ",
+        "Prize or unrealistic reward": "ನಕಲಿ ಲಾಟರಿ ಅಥವಾ ಅವಾಸ್ತವಿಕ ಬಹುಮಾನ",
+        "Suspicious link": "ಅನುಮಾನಾಸ್ಪದ ವೆಬ್ ಲಿಂಕ್",
+        "Impersonation or verification": "ನಕಲಿ ಅಧಿಕಾರಿ ಸೋಗು ಹಾಕುವಿಕೆ",
+        "Remote access or unknown application": "ರಿಮೋಟ್ ಪ್ರವೇಶ ಅಥವಾ ಅಪರಿಚಿತ APK ಆ್ಯಪ್",
+        "Utility disconnection extortion": "ವಿದ್ಯುತ್ ಸಂಪರ್ಕ ಕಡಿತದ ಬೆದರಿಕೆ",
+        "Advance-fee lottery fraud": "ಮುಂಗಡ ಶುಲ್ಕ ಲಾಟರಿ ವಂಚನೆ",
+        "Banking KYC credential phishing": "ಬ್ಯಾಂಕ್ ಖಾತೆ ಬ್ಲಾಕ್ ಮತ್ತು ಫಿಶಿಂಗ್ ಲಿಂಕ್",
+        "Law enforcement impersonation threat": "ಡಿಜಿಟಲ್ ಬಂಧನ / ಪೊಲೀಸ್ ಬೆದರಿಕೆ",
+        "Task / Part-time employment scam": "ಭಾಗಶಃ ಉದ್ಯೋಗ / ಯೂಟ್ಯೂಬ್ ಲೈಕ್ ಟಾಸ್ಕ್ ವಂಚನೆ",
+        "Malicious APK / Remote access software": "ಅಪಾಯಕಾರಿ APK ಅಥವಾ ಸ್ಕ್ರೀನ್ ಶೇರಿಂಗ್ ಸಾಫ್ಟ್‌ವೇರ್",
+    },
+    "Malayalam": {
+        "Urgency or threat": "അടിയന്തര അല്ലെങ്കിൽ ഭീഷണി സന്ദേശം (Urgency / Threat)",
+        "Sensitive information request": "രഹസ്യ വിവരങ്ങൾ (OTP/PIN/പാസ്‌വേഡ്) ആവശ്യപ്പെടൽ",
+        "Suspicious payment request": "സംശയാസ്പദമായ പേയ്‌മെന്റ് അഭ്യർത്ഥന",
+        "Prize or unrealistic reward": "വ്യാജ ലോട്ടറി അല്ലെങ്കിൽ സമ്മാന വാഗ്ദാനം",
+        "Suspicious link": "സംശയാസ്പദമായ വെബ് ലിങ്ക്",
+        "Impersonation or verification": "വ്യാജ ഉദ്യോഗസ്ഥ ചമയൽ",
+        "Remote access or unknown application": "റിമോട്ട് ആക്‌സസ് അല്ലെങ്കിൽ അപരിചിത APK ആപ്പ്",
+        "Utility disconnection extortion": "വൈദ്യുതി ബന്ധം വിച്ഛേദിക്കുമെന്ന ഭീഷണി",
+        "Advance-fee lottery fraud": "മുൻകൂർ ഫീസ് ലോട്ടറി തട്ടിപ്പ്",
+        "Banking KYC credential phishing": "ബാങ്ക് അക്കൗണ്ട് ബ്ലോക്കും ഫിഷിംഗ് ലിങ്കും",
+        "Law enforcement impersonation threat": "ഡിജിറ്റൽ അറസ്റ്റ് / പോലീസ് ഭീഷണി",
+        "Task / Part-time employment scam": "പാർട്ട് ടൈം ജോലി / യൂട്യൂബ് ലൈക്ക് തട്ടിപ്പ്",
+        "Malicious APK / Remote access software": "അപകടകരമായ APK അല്ലെങ്കിൽ സ്‌ക്രീൻ പങ്കിടൽ അഭ്യർത്ഥന",
+    },
+    "Gujarati": {
+        "Urgency or threat": "તાકીદ અથવા ધમકીભર્યો સંદેશ (Urgency / Threat)",
+        "Sensitive information request": "સંવેદનશીલ વિગતો (OTP/PIN/પાસવર્ડ) માંગણી",
+        "Suspicious payment request": "શંકાસ્પદ ચુકવણી અથવા ફી વિનંતી",
+        "Prize or unrealistic reward": "નકલી લૉટરી અથવા અવાસ્તવિક ઇનામ",
+        "Suspicious link": "શંકાસ્પદ અથવા અસુરક્ષિત વેબ લિંક",
+        "Impersonation or verification": "નકલી બેંક/વિભાગીય અધિકારી બનવું",
+        "Remote access or unknown application": "રિમોટ એક્સેસ અથવા અજાણી APK એપ",
+        "Utility disconnection extortion": "વીજળી કનેક્શન કાપવાની ધમકી",
+        "Advance-fee lottery fraud": "એડવાન્સ ફી લૉટરી છેતરપિંડી",
+        "Banking KYC credential phishing": "બેંક ખાતું બ્લોક અને ફિશિંગ લિંક",
+        "Law enforcement impersonation threat": "ડિજિટલ ધરપકડ / પોલીસનો નકલી ડર",
+        "Task / Part-time employment scam": "પાર્ટ-ટાઇમ જોબ / યુટ્યુબ લાઇક ટાસ્ક ફ્રોડ",
+        "Malicious APK / Remote access software": "ખતરનાક APK એપ અથવા સ્ક્રીન શેરિંગ વિનંતી",
+    },
+    "Rajasthani": {
+        "Urgency or threat": "तातकाळ या धमकी वाळो मेसेज (Urgency / Threat)",
+        "Sensitive information request": "गोपनीय जानकारी (OTP/पिन/पासवर्ड) री मांग",
+        "Suspicious payment request": "संशय वाळी पेमेंट री मांग",
+        "Prize or unrealistic reward": "झूठी लॉटरी या इनाम रो लालच",
+        "Suspicious link": "संशय वाळी वेब लिंक",
+        "Impersonation or verification": "फर्जी अधिकारी बण’र ठगी",
+        "Remote access or unknown application": "रिमोट एक्सेस या अनजाणी APK ऐप",
+        "Utility disconnection extortion": "बिजली काटन री धमकी",
+        "Advance-fee lottery fraud": "अग्रिम फीस लॉटरी धोखाधड़ी",
+        "Banking KYC credential phishing": "बैंक खातो बंद अर फ़िशिंग लिंक",
+        "Law enforcement impersonation threat": "डिजिटल अरेस्ट / पुलिस रो फर्जी डर",
+        "Task / Part-time employment scam": "पार्ट-टाइम नौकरी / यूट्यूब टास्क ठगी",
+        "Malicious APK / Remote access software": "खतरनाक APK ऐप या स्क्रीन शेयरिंग मांग",
+    },
+    "Nepali": {
+        "Urgency or threat": "अत्यावश्यक वा धम्कीपूर्ण सन्देश (Urgency / Threat)",
+        "Sensitive information request": "संवेदनशील जानकारी (OTP/पिन/पासवर्ड) माग",
+        "Suspicious payment request": "शंकास्पद भुक्तानी वा शुल्क अनुरोध",
+        "Prize or unrealistic reward": "नक्कली चिठ्ठा वा अवास्तविक पुरस्कार",
+        "Suspicious link": "शंकास्पद वा असुरक्षित वेब लिङ्क",
+        "Impersonation or verification": "नक्कली अधिकारीको भेष धारण",
+        "Remote access or unknown application": "रिमोट पहुँच वा अज्ञात APK एप",
+        "Utility disconnection extortion": "बिजुली/सेवा काट्ने धम्की",
+        "Advance-fee lottery fraud": "अग्रिम शुल्क चिठ्ठा ठगी",
+        "Banking KYC credential phishing": "बैंक खाता बन्द र फिसिङ लिङ्क",
+        "Law enforcement impersonation threat": "डिजिटल पक्राउ / प्रहरीको नक्कली डर",
+        "Task / Part-time employment scam": "पार्ट-टाइम काम / युट्युब लाइक टास्क ठगी",
+        "Malicious APK / Remote access software": "खतरनाक APK एप वा स्क्रिन सेयरिङ अनुरोध",
+    },
+    "Assamese": {
+        "Urgency or threat": "জৰুৰী বা ভাবুকিপূৰ্ণ বাৰ্তা (Urgency / Threat)",
+        "Sensitive information request": "সংবেদনশীল তথ্য (OTP/PIN/পাছৱৰ্ড) দাবী",
+        "Suspicious payment request": "সন্দেহজনক ধন পৰিশোধৰ অনুৰোধ",
+        "Prize or unrealistic reward": "ভুৱা লটাৰী বা অবাস্তৱ পুৰস্কাৰ",
+        "Suspicious link": "সন্দেহজনক ৱেব লিংক",
+        "Impersonation or verification": "ভুৱা বিষয়াৰ বেশ ধাৰণ",
+        "Remote access or unknown application": "ৰিম'ট প্ৰৱেশ বা অচিনাকি APK এপ",
+        "Utility disconnection extortion": "বিদ্যুৎ সংযোগ বিচ্ছিন্ন কৰাৰ ভাবুকি",
+        "Advance-fee lottery fraud": "আগধন লটাৰী প্ৰৱঞ্চনা",
+        "Banking KYC credential phishing": "বেংক একাউণ্ট বন্ধ আৰু ফিছিং লিংক",
+        "Law enforcement impersonation threat": "ডিজিটেল গ্ৰেপ্তাৰ / আৰক্ষীৰ ভাবুকি",
+        "Task / Part-time employment scam": "পাৰ্ট-টাইম চাকৰি / ইউটিউব লাইক প্ৰৱঞ্চনা",
+        "Malicious APK / Remote access software": "বিপদজনক APK এপ বা স্ক্ৰীণ শ্বেয়াৰ অনুৰোধ",
     },
 }
 
@@ -752,42 +1021,41 @@ def analyze_message(message, language="English"):
     trans_map = INDICATOR_TRANSLATIONS.get(language, {})
     indicators = [trans_map.get(ind, ind) for ind in list(dict.fromkeys(raw_indicators))]
 
-    if language == "Hindi":
-        if indicators:
-            explanation = (
-                "संदेश में संभावित धोखाधड़ी के संकेत मिले: "
-                + ", ".join(indicators)
-                + "। इन संकेतों की स्वतंत्र पुष्टि आवश्यक है।"
-            )
-        else:
-            explanation = (
-                "संदेश में कोई स्पष्ट धोखाधड़ी संकेत नहीं मिला। "
-                "फिर भी अपरिचित प्रेषकों से सावधान रहें।"
-            )
-    elif language == "Marathi":
-        if indicators:
-            explanation = (
-                "मेसेजमध्ये संशयास्पद फसवणुकीचे संकेत आढळले: "
-                + ", ".join(indicators)
-                + ". या संकेतांची स्वतंत्र पडताळणी करणे आवश्यक आहे."
-            )
-        else:
-            explanation = (
-                "मेसेजमध्ये कोणतेही उघड फसवणुकीचे संकेत आढळले नाहीत. "
-                "तरीही अनोळखी मेसेजपासून सावध राहा."
-            )
+    if indicators:
+        indicator_str = ", ".join(indicators)
+        EXPLANATION_TEMPLATES = {
+            "Hindi": f"संदेश में संभावित धोखाधड़ी के संकेत मिले: {indicator_str}। इन संकेतों की स्वतंत्र पुष्टि आवश्यक है।",
+            "Marathi": f"मेसेजमध्ये संशयास्पद फसवणुकीचे संकेत आढळले: {indicator_str}. या संकेतांची स्वतंत्र पडताळणी करणे आवश्यक आहे.",
+            "Tamil": f"செய்தியில் சாத்தியமான மோசடி அறிகுறிகள் கண்டறியப்பட்டன: {indicator_str}. இந்த அறிகுறிகளுக்கு சுயாதீன சரிபார்ப்பு தேவைப்படுகிறது.",
+            "Telugu": f"సందేశంలో సంభావ్య మోసం సంకేతాలు కనుగొనబడ్డాయి: {indicator_str}. ఈ సంకేతాలకు స్వతంత్ర ధృవీకరణ అవసరం.",
+            "Kannada": f"ಸಂದೇಶದಲ್ಲಿ ಸಂಭಾವ್ಯ ವಂಚನೆಯ ಸಂಕೇತಗಳು ಪತ್ತೆಯಾಗಿವೆ: {indicator_str}. ಈ ಸಂಕೇತಗಳನ್ನು ಸ್ವತಂತ್ರವಾಗಿ ದೃಢೀಕರಿಸುವುದು ಅವಶ್ಯಕ.",
+            "Malayalam": f"സന്ദേശത്തിൽ തട്ടിപ്പിന്റെ ലക്ഷണങ്ങൾ കണ്ടെത്തി: {indicator_str}. ഇവ സ്വതന്ത്രമായി സ്ഥിരീകരിക്കേണ്ടതുണ്ട്.",
+            "Gujarati": f"સંદેશમાં સંભવિત છેતરપિંડીના સંકેતો મળ્યા છે: {indicator_str}. આ સંકેતોની સ્વતંત્ર ચકાસણી જરૂરી છે.",
+            "Rajasthani": f"मेसेज मांय संभावित धोखेबाजी रा संकेत मिल्या: {indicator_str}। इण संकेतां री स्वतंत्र जांच जरूरी है।",
+            "Nepali": f"सन्देशमा सम्भावित ठगीका संकेतहरू फेला परे: {indicator_str}। यी संकेतहरूको स्वतन्त्र पुष्टि आवश्यक छ।",
+            "Assamese": f"বাৰ্তাটোত সম্ভাব্য প্ৰৱঞ্চনাৰ লক্ষণ পোৱা গৈছে: {indicator_str}। এই লক্ষণসমূহৰ স্বতন্ত্ৰ পৰীক্ষণ প্ৰয়োজন।",
+        }
+        explanation = EXPLANATION_TEMPLATES.get(
+            language,
+            f"Potential scam indicators detected: {indicator_str}. These signals require verification but do not prove by themselves that the message is fraudulent."
+        )
     else:
-        if indicators:
-            explanation = (
-                "Potential scam indicators detected: "
-                + ", ".join(indicators)
-                + ". These signals require verification but do not prove by themselves that the message is fraudulent."
-            )
-        else:
-            explanation = (
-                "No configured scam indicators were detected. "
-                "This does not guarantee that the message is safe."
-            )
+        SAFE_TEMPLATES = {
+            "Hindi": "संदेश में कोई स्पष्ट धोखाधड़ी संकेत नहीं मिला। फिर भी अपरिचित प्रेषकों से सावधान रहें।",
+            "Marathi": "मेसेजमध्ये कोणतेही उघड फसवणुकीचे संकेत आढळले नाहीत. तरीही अनोळखी मेसेजपासून सावध राहा.",
+            "Tamil": "செய்தியில் வெளிப்படையான மோசடி அறிகுறிகள் எதுவும் காணப்படவில்லை. இருப்பினும் அறிமுகமில்லாத செய்திகளிடம் எச்சரிக்கையாக இருங்கள்.",
+            "Telugu": "సందేశంలో స్పష్టమైన మోసం సంకేతాలు కనుగొనబడలేదు. అయినప్పటికీ తెలియని పంపినవారితో జాగ్రత్తగా ఉండండి.",
+            "Kannada": "ಸಂದೇಶದಲ್ಲಿ ಯಾವುದೇ ಸ್ಪಷ್ಟ ವಂಚನೆಯ ಸಂಕೇತಗಳು ಕಂಡುಬಂದಿಲ್ಲ. ಆದರೂ ಅಪರಿಚಿತ ಸಂದೇಶಗಳಿಂದ ಜಾಗರೂಕರಾಗಿರಿ.",
+            "Malayalam": "സന്ദേശത്തിൽ വ്യക്തമായ തട്ടിപ്പ് ലക്ഷണങ്ങളൊന്നും കണ്ടെത്തിയില്ല. എങ്കിലും അപരിചിതമായ സന്ദേശങ്ങൾ സൂക്ഷിക്കുക.",
+            "Gujarati": "સંદેશમાં કોઈ સ્પષ્ટ છેતરપિંડીના સંકેત મળ્યા નથી. છતાં અજાણ્યા મોકલનારથી સાવચેત રહો.",
+            "Rajasthani": "मेसेज मांय कोई उघाड़ो धोखेबाजी रो संकेत कोनी मिल्यो। तो भी अणजाण मेसेज सूं होशियार रहो।",
+            "Nepali": "सन्देशमा कुनै स्पष्ट ठगी संकेत फेला परेन। तैपनि अपरिचित सन्देशहरूबाट सावधान रहनुहोस्।",
+            "Assamese": "বাৰ্তাটোত কোনো স্পষ্ট প্ৰৱঞ্চনাৰ লক্ষণ পোৱা নগ'ল। তথাপিও অচিনাকি বাৰ্তাৰ পৰা সতৰ্ক থাকক।",
+        }
+        explanation = SAFE_TEMPLATES.get(
+            language,
+            "No configured scam indicators were detected. This does not guarantee that the message is safe."
+        )
 
     return {
         "risk_score": score,
@@ -806,21 +1074,63 @@ def analyze_with_gemini(message, language="English"):
     if not gemini_client:
         return None
 
-    lang_instruction = ""
-    if language == "Hindi":
-        lang_instruction = (
+    GEMINI_LANG_INSTRUCTIONS = {
+        "Hindi": (
             "LANGUAGE REQUIREMENT (CRITICAL): The user has selected Hindi. "
             "You MUST output 'explanation', 'indicators', and 'recommendations' strictly in clear Hindi (हिन्दी) "
             "using the Devanagari script. Do NOT provide English for these fields."
-        )
-    elif language == "Marathi":
-        lang_instruction = (
+        ),
+        "Marathi": (
             "LANGUAGE REQUIREMENT (CRITICAL): The user has selected Marathi. "
             "You MUST output 'explanation', 'indicators', and 'recommendations' strictly in clear Marathi (मराठी) "
             "using the Devanagari script. Do NOT provide English for these fields."
-        )
-    else:
-        lang_instruction = "Generate explanation, indicators, and recommendations in clear English."
+        ),
+        "Tamil": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user has selected Tamil. "
+            "You MUST output 'explanation', 'indicators', and 'recommendations' strictly in clear Tamil (தமிழ்) "
+            "using the Tamil script. Do NOT provide English for these fields."
+        ),
+        "Telugu": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user has selected Telugu. "
+            "You MUST output 'explanation', 'indicators', and 'recommendations' strictly in clear Telugu (తెలుగు) "
+            "using the Telugu script. Do NOT provide English for these fields."
+        ),
+        "Kannada": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user has selected Kannada. "
+            "You MUST output 'explanation', 'indicators', and 'recommendations' strictly in clear Kannada (ಕನ್ನಡ) "
+            "using the Kannada script. Do NOT provide English for these fields."
+        ),
+        "Malayalam": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user has selected Malayalam. "
+            "You MUST output 'explanation', 'indicators', and 'recommendations' strictly in clear Malayalam (മലയാളം) "
+            "using the Malayalam script. Do NOT provide English for these fields."
+        ),
+        "Gujarati": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user has selected Gujarati. "
+            "You MUST output 'explanation', 'indicators', and 'recommendations' strictly in clear Gujarati (ગુજરાતી) "
+            "using the Gujarati script. Do NOT provide English for these fields."
+        ),
+        "Rajasthani": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user has selected Rajasthani. "
+            "You MUST output 'explanation', 'indicators', and 'recommendations' strictly in natural Rajasthani/Marwari (राजस्थानी) "
+            "using the Devanagari script. Do NOT provide English for these fields."
+        ),
+        "Nepali": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user has selected Nepali. "
+            "You MUST output 'explanation', 'indicators', and 'recommendations' strictly in clear Nepali (नेपाली) "
+            "using the Devanagari script. Do NOT provide English for these fields."
+        ),
+        "Assamese": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user has selected Assamese. "
+            "You MUST output 'explanation', 'indicators', and 'recommendations' strictly in clear Assamese (অসমীয়া) "
+            "using the Assamese script. Do NOT provide English for these fields."
+        ),
+    }
+
+    lang_instruction = GEMINI_LANG_INSTRUCTIONS.get(
+        language,
+        "Generate explanation, indicators, and recommendations in clear English."
+    )
 
     prompt = f"""
 You are an expert fraud and cybercrime detection system analysing suspicious messages.
@@ -957,12 +1267,21 @@ def combine_results(rule_result, ai_result, ml_result, language="English"):
         explanation = ai_result["explanation"]
 
         if rule_result["indicators"]:
-            if language == "Hindi":
-                explanation += " नियम और सुरक्षा संकेत: " + ", ".join(rule_result["indicators"][:2]) + "।"
-            elif language == "Marathi":
-                explanation += " नियम व सुरक्षा संकेत: " + ", ".join(rule_result["indicators"][:2]) + "।"
-            else:
-                explanation += " Rule signals detected: " + ", ".join(rule_result["indicators"][:2]) + "."
+            RULE_SIGNAL_PREFIX = {
+                "Hindi": " नियम और सुरक्षा संकेत: ",
+                "Marathi": " नियम व सुरक्षा संकेत: ",
+                "Tamil": " விதி மற்றும் பாதுகாப்பு சமிக்ஞைகள்: ",
+                "Telugu": " నియమ మరియు భద్రతా సంకేతాలు: ",
+                "Kannada": " ನಿಯಮ ಮತ್ತು ಭದ್ರತಾ ಸಂಕೇತಗಳು: ",
+                "Malayalam": " സുരക്ഷാ നിയമ സൂചനകൾ: ",
+                "Gujarati": " નિયમ અને સુરક્ષા સંકેતો: ",
+                "Rajasthani": " नियम अर सुरक्षा संकेत: ",
+                "Nepali": " नियम र सुरक्षा संकेतहरू: ",
+                "Assamese": " নিয়ম আৰু সুৰক্ষা সংকেত: ",
+            }
+            prefix = RULE_SIGNAL_PREFIX.get(language, " Rule signals detected: ")
+            punct = "।" if language in ("Hindi", "Rajasthani", "Nepali", "Assamese") else "."
+            explanation += prefix + ", ".join(rule_result["indicators"][:2]) + punct
 
         return {
             "risk_score": score,
@@ -980,14 +1299,25 @@ def combine_results(rule_result, ai_result, ml_result, language="English"):
     ml_score = ml_result.get("ml_score", rule_score)
     score = max(rule_score, ml_score)
 
-    if language == "Hindi":
-        explanation = f"हाइब्रिड AI व सुरक्षा नियमों द्वारा मूल्यांकन पूर्ण हुआ। जोखिम स्कोर {score}/100 है।"
+    FALLBACK_EXPLANATIONS = {
+        "Hindi": (f"हाइब्रिड AI व सुरक्षा नियमों द्वारा मूल्यांकन पूर्ण हुआ। जोखिम स्कोर {score}/100 है।", " पहचाने गए खतरे के संकेत: "),
+        "Marathi": (f"हायब्रिड AI आणि सुरक्षा नियमांद्वारे विश्लेषण पूर्ण झाले. जोखीम गुण {score}/100 आहेत.", " आढळलेले धोक्याचे संकेत: "),
+        "Tamil": (f"ஹைப்ரிட் AI மற்றும் பாதுகாப்பு விதிகளின்படி மதிப்பீடு முடிந்தது. இடர் மதிப்பெண் {score}/100.", " கண்டறியப்பட்ட அச்சுறுத்தல் குறிகாட்டிகள்: "),
+        "Telugu": (f"హైబ్రిడ్ AI మరియు భద్రతా నిబంధనల విశ్లేషణ పూర్తయింది. ప్రమాద స్కోరు {score}/100.", " గుర్తించిన ముప్పు సంకేతాలు: "),
+        "Kannada": (f"ಹೈಬ್ರಿಡ್ AI ಮತ್ತು ಭದ್ರತಾ ನಿಯಮಗಳ ವಿಶ್ಲೇಷಣೆ ಪೂರ್ಣಗೊಂಡಿದೆ. ಅಪಾಯದ ಸ್ಕೋರ್ {score}/100.", " ಪತ್ತೆಯಾದ ಬೆದರಿಕೆ ಸೂಚಕಗಳು: "),
+        "Malayalam": (f"ഹൈബ്രിഡ് AI, സുരക്ഷാ നിയമങ്ങൾ എന്നിവ പ്രകാരമുള്ള വിലയിരുത്തൽ പൂർത്തിയായി. അപകട സ്കോർ {score}/100.", " കണ്ടെത്തിയ അപകട സൂചനകൾ: "),
+        "Gujarati": (f"હાઇબ્રિડ AI અને સુરક્ષા નિયમો દ્વારા મૂલ્યાંકન પૂર્ણ થયું. જોખમ સ્કોર {score}/100 છે.", " ઓળખાયેલ જોખમના સંકેતો: "),
+        "Rajasthani": (f"हाइब्रिड AI अर सुरक्षा नियमां सूं मूल्यांकन पूरो हुयो। जोखिम स्कोर {score}/100 है।", " सामणे आया खतरा रा संकेत: "),
+        "Nepali": (f"हाइब्रिड AI र सुरक्षा नियमहरू द्वारा मूल्याङ्कन सम्पन्न भयो। जोखिम स्कोर {score}/100 छ।", " पहिचान गरिएका खतराका संकेतहरू: "),
+        "Assamese": (f"হাইব্ৰিড AI আৰু সুৰক্ষা নিয়মৰ দ্বাৰা মূল্যাঙ্কন সম্পূৰ্ণ হ'ল। বিপদৰ স্ক'ৰ {score}/100।", " চিনাক্ত কৰা ভাবুকি সংকেত: "),
+    }
+
+    if language in FALLBACK_EXPLANATIONS:
+        base_exp, flag_prefix = FALLBACK_EXPLANATIONS[language]
+        explanation = base_exp
         if rule_result["indicators"]:
-            explanation += f" पहचाने गए खतरे के संकेत: {', '.join(rule_result['indicators'][:3])}।"
-    elif language == "Marathi":
-        explanation = f"हायब्रिड AI आणि सुरक्षा नियमांद्वारे विश्लेषण पूर्ण झाले. जोखीम गुण {score}/100 आहेत."
-        if rule_result["indicators"]:
-            explanation += f" आढळलेले धोक्याचे संकेत: {', '.join(rule_result['indicators'][:3])}."
+            punct = "।" if language in ("Hindi", "Rajasthani", "Nepali", "Assamese") else "."
+            explanation += f"{flag_prefix}{', '.join(rule_result['indicators'][:3])}{punct}"
     else:
         explanation = f"Hybrid AI and security rule assessment completed with a risk score of {score}/100."
         if rule_result["indicators"]:
@@ -995,12 +1325,19 @@ def combine_results(rule_result, ai_result, ml_result, language="English"):
 
     indicators = list(dict.fromkeys(rule_result["indicators"] + [f"NLP Signal: {s}" for s in ml_result.get("signals", []) if s]))
     if not indicators and score < 40:
-        if language == "Hindi":
-            indicators = ["कोई संदिग्ध संकेत नहीं मिला"]
-        elif language == "Marathi":
-            indicators = ["कोणतेही संशयास्पद संकेत आढळले नाहीत"]
-        else:
-            indicators = ["No critical threat indicators detected"]
+        FALLBACK_CLEAN = {
+            "Hindi": "कोई संदिग्ध संकेत नहीं मिला",
+            "Marathi": "कोणतेही संशयास्पद संकेत आढळले नाहीत",
+            "Tamil": "சந்தேகத்திற்குரிய அச்சுறுத்தல் குறிகாட்டிகள் எதுவும் கண்டறியப்படவில்லை",
+            "Telugu": "ఎటువంటి అనుమానాస్పద ముప్పు సంకేతాలు గుర్తించబడలేదు",
+            "Kannada": "ಯಾವುದೇ ಸಂಶಯಾಸ್ಪದ ಬೆದರಿಕೆ ಸೂಚಕಗಳು ಪತ್ತೆಯಾಗಿಲ್ಲ",
+            "Malayalam": "സംശയാസ്പദമായ ഭീഷണി സൂചനകളൊന്നും കണ്ടെത്തിയില്ല",
+            "Gujarati": "કોઈ શંકાસ્પદ જોખમના સંકેતો મળ્યા નથી",
+            "Rajasthani": "कोई संशय वाळा संकेत कोनी मिल्या",
+            "Nepali": "कुनै शंकास्पद खतराका संकेतहरू फेला परेनन्",
+            "Assamese": "কোনো সন্দেহজনক ভাবুকি সংকেত ধৰা পৰা নাই",
+        }
+        indicators = [FALLBACK_CLEAN.get(language, "No critical threat indicators detected")]
 
     return {
         "risk_score": score,
@@ -1068,7 +1405,7 @@ def scan_message():
 
     message = data.get("message")
     language = data.get("language", "English")
-    if language not in ("English", "Hindi", "Marathi"):
+    if language not in SUPPORTED_LANGUAGES:
         language = "English"
 
     if not isinstance(message, str):
@@ -1157,7 +1494,7 @@ def scan_image():
     data = request.get_json(silent=True) or {}
     image_b64 = data.get("image") or ""
     language = data.get("language", "English")
-    if language not in ("English", "Hindi", "Marathi"):
+    if language not in SUPPORTED_LANGUAGES:
         language = "English"
 
     if not image_b64:
@@ -1186,30 +1523,72 @@ def scan_image():
             "recommendations": ["Configure GEMINI_API_KEY in environment."]
         }), 200
 
-    lang_clause = ""
-    if language == "Hindi":
-        lang_clause = (
+    IMAGE_LANG_CLAUSES = {
+        "Hindi": (
             "LANGUAGE REQUIREMENT (CRITICAL): The user selected Hindi. "
             "Write the 'explanation', 'indicators', and 'recommendations' strictly in clear Hindi (Devanagari script हिन्दी). "
             "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
-        )
-    elif language == "Marathi":
-        lang_clause = (
+        ),
+        "Marathi": (
             "LANGUAGE REQUIREMENT (CRITICAL): The user selected Marathi. "
             "Write the 'explanation', 'indicators', and 'recommendations' strictly in clear Marathi (Devanagari script मराठी). "
             "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
-        )
-    else:
-        lang_clause = (
+        ),
+        "Tamil": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user selected Tamil. "
+            "Write the 'explanation', 'indicators', and 'recommendations' strictly in clear Tamil (தமிழ்). "
+            "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
+        ),
+        "Telugu": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user selected Telugu. "
+            "Write the 'explanation', 'indicators', and 'recommendations' strictly in clear Telugu (తెలుగు). "
+            "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
+        ),
+        "Kannada": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user selected Kannada. "
+            "Write the 'explanation', 'indicators', and 'recommendations' strictly in clear Kannada (ಕನ್ನಡ). "
+            "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
+        ),
+        "Malayalam": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user selected Malayalam. "
+            "Write the 'explanation', 'indicators', and 'recommendations' strictly in clear Malayalam (മലയാളം). "
+            "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
+        ),
+        "Gujarati": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user selected Gujarati. "
+            "Write the 'explanation', 'indicators', and 'recommendations' strictly in clear Gujarati (ગુજરાતી). "
+            "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
+        ),
+        "Rajasthani": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user selected Rajasthani. "
+            "Write the 'explanation', 'indicators', and 'recommendations' strictly in natural Rajasthani (राजस्थानी). "
+            "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
+        ),
+        "Nepali": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user selected Nepali. "
+            "Write the 'explanation', 'indicators', and 'recommendations' strictly in clear Nepali (नेपाली). "
+            "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
+        ),
+        "Assamese": (
+            "LANGUAGE REQUIREMENT (CRITICAL): The user selected Assamese. "
+            "Write the 'explanation', 'indicators', and 'recommendations' strictly in clear Assamese (অসমীয়া). "
+            "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
+        ),
+    }
+
+    lang_clause = IMAGE_LANG_CLAUSES.get(
+        language,
+        (
             "Write the 'explanation', 'indicators', and 'recommendations' in clear English. "
             "Keep 'risk_level' as one of 'Low', 'Medium', or 'High'."
         )
+    )
 
     prompt = (
         "You are an expert fraud and cybercrime detection system. Analyze this screenshot "
         "(WhatsApp message, SMS, payment receipt, bank alert, or QR code) for fraud.\n"
         f"{lang_clause}\n"
-        "1. Extract all text clearly in the original language (Hindi/Marathi/English).\n"
+        "1. Extract all text clearly in the original language (Regional/English).\n"
         "2. Check if this is a fake payment receipt (examine UTR number format, font tampering, timing inconsistencies).\n"
         "3. Check for social engineering (urgent threat of account freeze, electricity cut-off, lottery, job scam, KYC update link).\n"
         "4. Return STRICT JSON with keys:\n"
@@ -1995,7 +2374,7 @@ def update_settings():
             db.session.add(pref)
 
         if "language" in data:
-            pref.language = str(data["language"])[:10]
+            pref.language = str(data["language"])[:30]
         if "theme" in data:
             pref.theme = str(data["theme"])[:10]
         if "notifications_enabled" in data:
