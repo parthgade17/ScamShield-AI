@@ -84,7 +84,41 @@ SCAM_TRAINING_CORPUS: List[str] = [
     "Dear friend I am stuck in hospital with severe medical emergency. Please transfer 15,000 to Google Pay right now. I will return tomorrow.",
     "Your nephew met with an accident and is admitted in ICU. Doctor needs 20,000 advance payment immediately. Pay to UPI now.",
     "Official notice from Income Tax Department: You have an urgent tax refund of Rs 24,500. Click link to enter bank credentials to claim.",
-    "Paytm loan approved: Rs 5,00,000 personal loan approved with zero interest. Pay Rs 2,500 documentation charge to disburse amount."
+    "Paytm loan approved: Rs 5,00,000 personal loan approved with zero interest. Pay Rs 2,500 documentation charge to disburse amount.",
+
+    # Category: Postal / Courier Delivery Address Update Phishing
+    "India Post: Your package could not be delivered due to incomplete address. Please update your address at http://indiapost-parcel-update.com within 24 hours.",
+    "India Post: Your parcel has arrived at our sorting facility but the delivery address is incorrect. Please update within 24 hours: http://indiapost-redelivery.top",
+    "BlueDart Express: Consignment #BLD82910 held at regional hub due to missing street address. Confirm address immediately to avoid return.",
+    "FedEx Alert: Your shipment delivery failed. Click link to reschedule delivery and pay nominal re-attempt fee Rs 25.",
+    "DTDC Courier: Undelivered parcel notification. Update your house number and pin code online at http://dtdc-tracking-update.xyz",
+    "स्पीड पोस्ट सूचना: आपका पार्सल गलत पते के कारण रुका हुआ है। 24 घंटे में सही पता अपडेट करें अन्यथा पार्सल वापस भेज दिया जाएगा।",
+    "तुमचे इंडिया पोस्ट पार्सल पत्ता अपूर्ण असल्यामुळे थांबवले आहे. तात्काळ खालील लिंकवर जाऊन पत्ता अपडेट करा.",
+
+    # Category: Credit Card / Banking Reward Points Expiry Phishing
+    "Your HDFC Credit card reward points worth Rs 4500 are expiring today. Redeem to cash here: http://hdfc-rewards-redeem.com",
+    "SBI Card: You have accumulated 9,850 bonus reward points expiring tonight. Convert points to Rs 4,925 cash into your bank account immediately.",
+    "ICICI Bank Credit Card: 6,400 reward points expiring in 24 hours. Click link to credit amount directly to your savings account.",
+    "Axis Bank Alert: Redeem your unspent credit card cashback points before expiry. Visit http://axis-cashback-points.com",
+    "क्रेडिट कार्ड रिवॉर्ड पॉइंट: आपके 5000 रिवॉर्ड पॉइंट आज समाप्त हो रहे हैं। इन्हें सीधे बैंक खाते में कैश में बदलने के लिए यहां क्लिक करें।",
+    "तुमच्या क्रेडिट कार्डचे 4000 रिवॉर्ड पॉईंट्स आज संपत आहेत. तात्काळ खात्यात कॅश जमा करण्यासाठी लिंकवर जा.",
+
+    # Category: FASTag & Traffic E-Challan Scams
+    "Dear user, your FASTag is blacklisted. Update KYC immediately at http://fastag-verify.com to avoid toll penalty.",
+    "NHAI FASTag Alert: Your FASTag wallet is suspended due to non-compliance. Click link to reactivate your tag.",
+    "Urgent: Vehicle challan pending Rs 1000. Pay now at http://echallan-vahan.com to avoid police court summons.",
+    "Parivahan notice: Unpaid e-challan of Rs 2000 registered against vehicle MH12AB1234. Pay within 48 hours to avoid driving license suspension.",
+    "ट्रैफिक ई-चालान सूचना: आपका 1000 रुपये का चालान लंबित है। कोर्ट समन से बचने के लिए तुरंत ऑनलाइन भुगतान करें।",
+    "तुमचा वाहन ई-चलन दंड तात्काळ भरा अन्यथा वाहन परवाना रद्द केला जाईल.",
+
+    # Category: Fake Loan Approval & Instant Credit Scams
+    "Congratulations! Pre-approved personal loan of Rs 5,00,000 at 2% annual interest. Transfer processing charge Rs 1,499 for instant disbursement.",
+    "Bajaj Finserv: Your instant loan of Rs 3,50,000 is approved. Download agreement and pay documentation stamp duty Rs 999.",
+    "Dhani Loans: Instant approval Rs 2 Lakh. Send Aadhaar photo and advance fee Rs 500 on WhatsApp to credit funds.",
+
+    # Category: Train / IRCTC / Airline Ticket Refund Scams
+    "IRCTC refund notification: Your ticket cancellation refund of Rs 1,840 is pending. Download IRCTC support APK to initiate instant UPI refund.",
+    "Air India customer service: For flight cancellation refund, call helpline 9182736450 and share AnyDesk code with refund officer."
 ]
 
 LEGIT_TRAINING_CORPUS: List[str] = [
@@ -249,6 +283,21 @@ class ScamClassifierML:
             raw_score = max(raw_score, 94)
 
         if ("blocked" in lower_text or "बंद" in lower_text or "ब्लॉक" in lower_text) and ("kyc" in lower_text or "pan" in lower_text or "sbi" in lower_text or "bank" in lower_text):
+            raw_score = max(raw_score, 90)
+
+        if ("netbanking" in lower_text or "bank" in lower_text or "account" in lower_text) and ("restrict" in lower_text or "freeze" in lower_text or "suspend" in lower_text or "lock" in lower_text or "deactivat" in lower_text) and ("pan" in lower_text or "kyc" in lower_text or "http" in lower_text or "link" in lower_text):
+            raw_score = max(raw_score, 92)
+
+        if ("package" in lower_text or "parcel" in lower_text or "post" in lower_text or "delivery" in lower_text) and ("address" in lower_text or "undelivered" in lower_text or "incomplete" in lower_text or "reschedule" in lower_text) and ("http" in lower_text or "link" in lower_text or ".com" in lower_text or "update" in lower_text):
+            raw_score = max(raw_score, 90)
+
+        if ("fastag" in lower_text or "challan" in lower_text or "vahan" in lower_text) and ("blacklist" in lower_text or "blocked" in lower_text or "pending" in lower_text or "penalty" in lower_text or "court" in lower_text or "toll" in lower_text):
+            raw_score = max(raw_score, 92)
+
+        if ("reward" in lower_text or "points" in lower_text or "cashback" in lower_text) and ("expir" in lower_text or "redeem" in lower_text or "convert" in lower_text) and ("cash" in lower_text or "account" in lower_text or "http" in lower_text or "link" in lower_text):
+            raw_score = max(raw_score, 92)
+
+        if ("mom" in lower_text or "dad" in lower_text or "friend" in lower_text) and ("phone" in lower_text or "hospital" in lower_text or "emergency" in lower_text or "accident" in lower_text) and ("upi" in lower_text or "transfer" in lower_text or "send" in lower_text):
             raw_score = max(raw_score, 90)
 
         if ("like" in lower_text or "subscribe" in lower_text) and ("youtube" in lower_text or "telegram" in lower_text) and ("daily" in lower_text or "earn" in lower_text or "कमाएं" in lower_text):

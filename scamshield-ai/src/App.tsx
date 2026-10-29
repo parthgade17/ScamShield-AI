@@ -186,31 +186,12 @@ function App() {
 
           <div className="topbar-right">
             {/* Multilingual Selector Pill */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                background: 'var(--card-background, #f3f4f6)',
-                padding: '5px 10px',
-                borderRadius: 20,
-                border: '1px solid var(--border-color, #e5e7eb)',
-              }}
-            >
-              <Globe size={16} />
+            <div className="lang-selector-pill">
+              <Globe size={15} />
               <select
                 aria-label="Choose Language"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as Language)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  fontWeight: 600,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  outline: 'none',
-                  color: 'inherit',
-                }}
               >
                 {AVAILABLE_LANGUAGES.map((lang) => (
                   <option key={lang.value} value={lang.value}>

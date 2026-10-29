@@ -74,6 +74,26 @@ export default function ScamScanner() {
   // User feedback state
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<string | null>(null)
 
+  // Quick Test Sample Scam Messages
+  const SAMPLE_MESSAGES = [
+    {
+      label: '⚡ Electricity Threat',
+      text: 'Dear customer, your electricity power will be disconnected tonight at 9:30 PM due to unpaid bill. Immediately contact electricity officer at 9876543210 to avoid disconnection.',
+    },
+    {
+      label: '🏦 Bank KYC Block',
+      text: 'URGENT: Your SBI bank account has been suspended due to incomplete KYC update. Click http://sbi-kyc-verify-portal.in to update your Aadhaar and PAN immediately.',
+    },
+    {
+      label: '🎉 Lucky Draw Winner',
+      text: 'Congratulations! Your mobile number won 25 Lakhs in KBC Lucky Draw. Contact Manager Rana Pratap on WhatsApp at 9812345678 to claim your cash reward immediately.',
+    },
+    {
+      label: '💼 Telegram Job Scam',
+      text: 'Work from home! Earn Rs. 3000 to 5000 daily by liking YouTube videos and Telegram reviews. Registration fee 500 refundable. WhatsApp 9988776655.',
+    },
+  ]
+
   // Preload speech synthesis voices
   useEffect(() => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -466,51 +486,69 @@ export default function ScamScanner() {
 
       <div className="content-card">
         {/* Mode Tab Switcher */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 18, borderBottom: '1px solid var(--border-color, #e5e7eb)', paddingBottom: 10 }}>
-          <button
-            type="button"
-            className="secondary-button"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              border: scanMode === 'text' ? '2px solid var(--primary, #2563eb)' : '1px solid #e5e7eb',
-              fontWeight: scanMode === 'text' ? 700 : 500,
-              borderRadius: 8,
-              padding: '8px 16px',
-              cursor: 'pointer',
-            }}
-            onClick={() => setScanMode('text')}
-          >
-            <FileText size={18} />
-            {t('scanner.tab_text')}
-          </button>
+        <div style={{ marginBottom: 20 }}>
+          <div className="segmented-control">
+            <button
+              type="button"
+              className={`segmented-tab ${scanMode === 'text' ? 'active' : ''}`}
+              onClick={() => setScanMode('text')}
+            >
+              <FileText size={16} />
+              <span>{t('scanner.tab_text')}</span>
+            </button>
 
-          <button
-            type="button"
-            className="secondary-button"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              border: scanMode === 'image' ? '2px solid var(--primary, #2563eb)' : '1px solid #e5e7eb',
-              fontWeight: scanMode === 'image' ? 700 : 500,
-              borderRadius: 8,
-              padding: '8px 16px',
-              cursor: 'pointer',
-            }}
-            onClick={() => setScanMode('image')}
-          >
-            <ImageIcon size={18} />
-            {t('scanner.tab_image')}
-          </button>
+            <button
+              type="button"
+              className={`segmented-tab ${scanMode === 'image' ? 'active' : ''}`}
+              onClick={() => setScanMode('image')}
+            >
+              <ImageIcon size={16} />
+              <span>{t('scanner.tab_image')}</span>
+            </button>
+          </div>
         </div>
 
         {/* Tab 1: Text Scanning */}
         {scanMode === 'text' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <label htmlFor="message-input" style={{ fontWeight: 600 }}>
+            {/* Quick Test Sample Pills */}
+            <div style={{ marginBottom: 16 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+                Try Sample Threat Message:
+              </span>
+              <div className="quick-samples">
+                {SAMPLE_MESSAGES.map((sample, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className="sample-chip"
+                    onClick={() => {
+                      setMessage(sample.text)
+                      setError('')
+                      setScan(null)
+                    }}
+                  >
+                    {sample.label}
+                  </button>
+                ))}
+                {message && (
+                  <button
+                    type="button"
+                    className="sample-chip"
+                    style={{ color: '#ef4444', borderColor: '#fca5a5' }}
+                    onClick={() => {
+                      setMessage('')
+                      setScan(null)
+                    }}
+                  >
+                    ✕ Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <label htmlFor="message-input" style={{ fontWeight: 600, margin: 0 }}>
                 {t('scanner.paste_label')}
               </label>
 
@@ -523,17 +561,19 @@ export default function ScamScanner() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  padding: '5px 12px',
+                  padding: '6px 14px',
                   borderRadius: 20,
-                  fontSize: 13,
+                  fontSize: 12.5,
                   fontWeight: 600,
                   cursor: 'pointer',
-                  border: isListening ? '1px solid #ef4444' : '1px solid var(--border-color, #d1d5db)',
-                  background: isListening ? '#fee2e2' : 'var(--card-background, #f9fafb)',
-                  color: isListening ? '#b91c1c' : 'inherit',
+                  border: isListening ? '1px solid #ef4444' : '1px solid var(--border-color)',
+                  background: isListening ? 'var(--risk-high-bg)' : 'var(--bg-surface)',
+                  color: isListening ? 'var(--risk-high)' : 'var(--text-secondary)',
+                  animation: isListening ? 'micPulse 1.4s infinite' : 'none',
+                  transition: 'all 0.2s ease',
                 }}
               >
-                {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                {isListening ? <MicOff size={15} /> : <Mic size={15} />}
                 {isListening ? t('scanner.voice_listening') : t('scanner.voice_listen')}
               </button>
             </div>
@@ -619,18 +659,22 @@ export default function ScamScanner() {
 
         {/* Results Waterfall Box */}
         {scan && (
-          <div className="result-box" style={{ marginTop: 24, borderTop: '2px solid #e5e7eb', paddingTop: 20 }}>
+          <div className="result-box" style={{ marginTop: 28 }}>
             {/* Header with Read-Aloud Voice button */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 {(scan.risk_score ?? 0) >= 60 ? (
-                  <AlertTriangle size={30} color={riskColor(scan.risk_level)} />
+                  <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', background: 'var(--risk-high-bg)', border: '1px solid var(--risk-high-border)', display: 'grid', placeItems: 'center' }}>
+                    <AlertTriangle size={24} color={riskColor(scan.risk_level)} />
+                  </div>
                 ) : (
-                  <ShieldCheck size={30} color={riskColor(scan.risk_level)} />
+                  <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', background: 'var(--risk-low-bg)', border: '1px solid var(--risk-low-border)', display: 'grid', placeItems: 'center' }}>
+                    <ShieldCheck size={24} color={riskColor(scan.risk_level)} />
+                  </div>
                 )}
                 <div>
-                  <h3 style={{ margin: 0 }}>{t('scanner.result_title')}</h3>
-                  <small style={{ color: '#6b7280' }}>{t('scanner.result_completed')}</small>
+                  <h3 style={{ margin: 0, fontSize: 18 }}>{t('scanner.result_title')}</h3>
+                  <small style={{ color: 'var(--text-muted)', fontSize: 12 }}>{t('scanner.result_completed')}</small>
                 </div>
               </div>
 
@@ -640,26 +684,47 @@ export default function ScamScanner() {
                 className="secondary-button"
                 onClick={toggleReadAloud}
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '6px 14px',
                   borderRadius: 20,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
+                  fontSize: 12.5,
+                  padding: '7px 16px',
+                  border: isSpeaking ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                  background: isSpeaking ? 'var(--primary-subtle)' : 'var(--bg-card)',
+                  color: isSpeaking ? 'var(--primary)' : 'var(--text-secondary)',
                 }}
               >
-                {isSpeaking ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                {isSpeaking ? <VolumeX size={15} /> : <Volume2 size={15} />}
                 {isSpeaking ? t('scanner.stop_reading') : t('scanner.listen_verdict')}
               </button>
             </div>
 
+            {/* Visual Risk Severity Meter Bar */}
+            <div style={{ marginBottom: 22, padding: '14px 18px', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Threat Severity Meter</span>
+                <span style={{ color: riskColor(scan.risk_level) }}>{scan.risk_score ?? 0} / 100 ({scan.risk_level})</span>
+              </div>
+              <div style={{ height: 10, borderRadius: 5, background: 'var(--border-color)', overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${Math.min(100, Math.max(5, scan.risk_score ?? 0))}%`,
+                    borderRadius: 5,
+                    background: (scan.risk_score ?? 0) >= 70
+                      ? 'linear-gradient(90deg, #f59e0b 0%, #ef4444 100%)'
+                      : (scan.risk_score ?? 0) >= 40
+                      ? 'linear-gradient(90deg, #10b981 0%, #f59e0b 100%)'
+                      : '#10b981',
+                    transition: 'width 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                />
+              </div>
+            </div>
+
             {/* Score Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 20 }}>
-              <div style={{ padding: 14, borderRadius: 10, background: 'var(--card-background, #f8fafc)', border: '1px solid #e5e7eb' }}>
-                <p style={{ margin: '0 0 6px', fontSize: 13, color: '#6b7280' }}>{t('scanner.risk_level')}</p>
-                <strong style={{ color: riskColor(scan.risk_level), fontSize: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, marginBottom: 20 }}>
+              <div style={{ padding: 16, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                <p style={{ margin: '0 0 6px', fontSize: 12, color: 'var(--text-muted)' }}>{t('scanner.risk_level')}</p>
+                <strong style={{ color: riskColor(scan.risk_level), fontSize: 20, display: 'block' }}>
                   {language === 'Hindi'
                     ? scan.risk_level === 'High' ? 'उच्च' : scan.risk_level === 'Medium' ? 'मध्यम' : 'कम'
                     : language === 'Marathi'
@@ -669,36 +734,36 @@ export default function ScamScanner() {
                 </strong>
               </div>
 
-              <div style={{ padding: 14, borderRadius: 10, background: 'var(--card-background, #f8fafc)', border: '1px solid #e5e7eb' }}>
-                <p style={{ margin: '0 0 6px', fontSize: 13, color: '#6b7280' }}>{t('scanner.risk_score')}</p>
-                <strong style={{ fontSize: 20 }}>{scan.risk_score ?? 0} / 100</strong>
+              <div style={{ padding: 16, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                <p style={{ margin: '0 0 6px', fontSize: 12, color: 'var(--text-muted)' }}>{t('scanner.risk_score')}</p>
+                <strong style={{ fontSize: 22, color: 'var(--text-primary)', display: 'block' }}>{scan.risk_score ?? 0} / 100</strong>
               </div>
 
-              <div style={{ padding: 14, borderRadius: 10, background: 'var(--card-background, #f8fafc)', border: '1px solid #e5e7eb' }}>
-                <p style={{ margin: '0 0 6px', fontSize: 13, color: '#6b7280' }}>{t('scanner.detection_method')}</p>
-                <strong style={{ fontSize: 14, color: 'var(--primary, #2563eb)' }}>
+              <div style={{ padding: 16, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                <p style={{ margin: '0 0 6px', fontSize: 12, color: 'var(--text-muted)' }}>{t('scanner.detection_method')}</p>
+                <strong style={{ fontSize: 13.5, color: 'var(--primary)', display: 'block' }}>
                   {scan.detection_method === 'gemini_vision'
-                    ? 'Gemini Vision AI'
-                    : 'Rule + Gemini based'}
+                    ? '✨ Gemini Vision AI'
+                    : '🛡️ Rule + Gemini based'}
                 </strong>
               </div>
             </div>
 
             {/* Feature 5: Plain language "Why was this flagged?" */}
             {scan.explanation && (
-              <div style={{ padding: '14px 16px', borderRadius: 10, background: 'rgba(239, 68, 68, 0.06)', borderLeft: '4px solid #ef4444', marginBottom: 18 }}>
-                <h4 style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Info size={18} color="#ef4444" />
+              <div style={{ padding: '16px 20px', borderRadius: 'var(--radius-md)', background: 'var(--risk-high-bg)', border: '1px solid var(--risk-high-border)', borderLeft: '4px solid var(--risk-high)', marginBottom: 20 }}>
+                <h4 style={{ margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--risk-high)', fontSize: 14 }}>
+                  <Info size={18} />
                   {t('scanner.why_summary')}
                 </h4>
-                <p style={{ margin: 0, lineHeight: 1.5 }}>{scan.explanation}</p>
+                <p style={{ margin: 0, lineHeight: 1.6, color: 'var(--text-primary)' }}>{scan.explanation}</p>
               </div>
             )}
 
             {/* Feature 5: Word Highlighting in original message */}
             {message && (
-              <div style={{ marginBottom: 18, padding: 14, borderRadius: 10, background: 'var(--card-background, #f8fafc)', border: '1px solid #e5e7eb' }}>
-                <h4 style={{ margin: '0 0 10px', fontSize: '0.92rem', color: '#6b7280' }}>
+              <div style={{ marginBottom: 20, padding: 16, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                <h4 style={{ margin: '0 0 10px', fontSize: '0.92rem', color: 'var(--text-secondary)' }}>
                   {t('scanner.highlighted_text')}:
                 </h4>
                 {renderHighlightedText(message)}

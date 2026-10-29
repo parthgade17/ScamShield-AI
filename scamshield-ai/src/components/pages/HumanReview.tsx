@@ -283,14 +283,71 @@ export default function HumanReview() {
 
             <div
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                marginTop: 16,
+                flexWrap: 'wrap',
+              }}
+            >
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={submittingId === item.id || Boolean(savedStatus[item.id])}
+                onClick={() => submitDecision(item.id, 'Confirmed Scam')}
+                style={{
+                  background: 'var(--risk-high-bg)',
+                  borderColor: 'var(--risk-high-border)',
+                  color: 'var(--risk-high-text)',
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  padding: '7px 14px',
+                }}
+              >
+                ⚠️ {t('review.confirmed_scam')}
+              </button>
+
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={submittingId === item.id || Boolean(savedStatus[item.id])}
+                onClick={() => submitDecision(item.id, 'Likely Legitimate')}
+                style={{
+                  background: 'var(--risk-low-bg)',
+                  borderColor: 'var(--risk-low-border)',
+                  color: 'var(--risk-low-text)',
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  padding: '7px 14px',
+                }}
+              >
+                ✓ {t('review.likely_legit')}
+              </button>
+
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={submittingId === item.id || Boolean(savedStatus[item.id])}
+                onClick={() => submitDecision(item.id, 'Inconclusive')}
+                style={{
+                  fontSize: 12.5,
+                  padding: '7px 14px',
+                }}
+              >
+                ❓ {t('review.inconclusive')}
+              </button>
+            </div>
+
+            <div
+              style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                 gap: 12,
-                marginTop: 12,
+                marginTop: 14,
               }}
             >
               <div>
-                <label htmlFor={`decision-${item.id}`}>{t('review.verdict_label')}</label>
+                <label htmlFor={`decision-${item.id}`} style={{ fontSize: 12 }}>{t('review.verdict_label')} (Alternative Dropdown)</label>
                 <select
                   id={`decision-${item.id}`}
                   value={decisions[item.id] || ''}
@@ -309,7 +366,7 @@ export default function HumanReview() {
               </div>
 
               <div>
-                <label htmlFor={`notes-${item.id}`}>{t('review.notes_label')}</label>
+                <label htmlFor={`notes-${item.id}`} style={{ fontSize: 12 }}>{t('review.notes_label')}</label>
                 <input
                   id={`notes-${item.id}`}
                   type="text"

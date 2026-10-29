@@ -107,61 +107,82 @@ function Dashboard({ onNavigate }: DashboardProps) {
 
   return (
     <div className="page-container">
-      <div
-        className="welcome-section"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 16,
-        }}
-      >
+      <div className="welcome-section">
         <div>
           <p className="eyebrow">{t('dashboard.eyebrow')}</p>
           <h1>{t('dashboard.welcome')}</h1>
           <p>{t('dashboard.subtitle')}</p>
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
+            <button
+              className="primary-button"
+              onClick={() => onNavigate('Scam Scanner')}
+              style={{ padding: '9px 18px', fontSize: 13, background: 'rgba(255, 255, 255, 0.95)', color: '#1e3a8a' }}
+            >
+              <ScanSearch size={16} />
+              <span>{t('dashboard.scan_msg_btn')}</span>
+            </button>
+
+            <button
+              className="secondary-button"
+              onClick={() => onNavigate('Link Checker')}
+              style={{ padding: '9px 16px', fontSize: 13, background: 'rgba(255, 255, 255, 0.15)', color: '#ffffff', borderColor: 'rgba(255, 255, 255, 0.25)' }}
+            >
+              <Link size={16} />
+              <span>{t('dashboard.check_link_btn')}</span>
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {dataSource && (
-            <span
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {dataSource && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 11.5,
+                  padding: '5px 12px',
+                  borderRadius: 20,
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(8px)',
+                  color: '#fff',
+                  fontWeight: 600,
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                }}
+                title="Active live database source"
+              >
+                <Database size={13} />
+                {dataSource}
+              </span>
+            )}
+
+            <button
+              className="secondary-button"
+              onClick={() => loadStats(true)}
+              disabled={isRefreshing}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                fontSize: 12,
-                padding: '4px 10px',
+                padding: '6px 12px',
                 borderRadius: 20,
-                background: 'rgba(255, 255, 255, 0.2)',
-                color: '#fff',
+                fontSize: 12,
                 fontWeight: 600,
+                background: 'rgba(255, 255, 255, 0.15)',
+                color: '#fff',
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                cursor: 'pointer',
               }}
-              title="Active live database source"
+              title="Refresh Live Statistics"
             >
-              <Database size={13} />
-              {dataSource}
-            </span>
-          )}
+              <RefreshCw size={13} className={isRefreshing ? 'spinner' : ''} />
+              <span>{isRefreshing ? 'Syncing...' : 'Live Sync'}</span>
+            </button>
+          </div>
 
-          <button
-            className="secondary-button"
-            onClick={() => loadStats(true)}
-            disabled={isRefreshing}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 14px',
-              borderRadius: 8,
-              cursor: 'pointer',
-            }}
-            title="Refresh Live Statistics"
-          >
-            <RefreshCw size={16} className={isRefreshing ? 'spinner' : ''} />
-            <span>{isRefreshing ? 'Updating...' : 'Live Refresh'}</span>
-          </button>
-          <ShieldCheck size={64} />
+          <ShieldCheck size={56} style={{ opacity: 0.85, marginTop: 4 }} />
         </div>
       </div>
 
@@ -204,28 +225,36 @@ function Dashboard({ onNavigate }: DashboardProps) {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <ScanSearch size={25} />
+          <div className="stat-card-icon blue">
+            <ScanSearch size={22} />
+          </div>
           <p>{t('dashboard.total_scans')}</p>
           <h2>{loading ? '...' : stats.total_scans}</h2>
           <span>{t('dashboard.total_scans_sub')}</span>
         </div>
 
         <div className="stat-card">
-          <AlertTriangle size={25} />
+          <div className="stat-card-icon red">
+            <AlertTriangle size={22} />
+          </div>
           <p>{t('dashboard.high_risk')}</p>
           <h2>{loading ? '...' : stats.high_risk}</h2>
           <span>{t('dashboard.high_risk_sub')}</span>
         </div>
 
         <div className="stat-card">
-          <Clock size={25} />
+          <div className="stat-card-icon amber">
+            <Clock size={22} />
+          </div>
           <p>{t('dashboard.pending_reviews')}</p>
           <h2>{loading ? '...' : stats.pending_reviews}</h2>
           <span>{t('dashboard.pending_reviews_sub')}</span>
         </div>
 
         <div className="stat-card">
-          <ShieldCheck size={25} />
+          <div className="stat-card-icon green">
+            <ShieldCheck size={22} />
+          </div>
           <p>{t('dashboard.cases_reviewed')}</p>
           <h2>{loading ? '...' : stats.cases_reviewed}</h2>
           <span>{t('dashboard.cases_reviewed_sub')}</span>
@@ -242,7 +271,9 @@ function Dashboard({ onNavigate }: DashboardProps) {
           className="action-card"
           onClick={() => onNavigate('Scam Scanner')}
         >
-          <MessageSquareWarning size={30} />
+          <div className="action-card-icon">
+            <MessageSquareWarning size={24} />
+          </div>
           <h3>{t('dashboard.scan_msg_title')}</h3>
           <p>{t('dashboard.scan_msg_desc')}</p>
           <span>
@@ -254,7 +285,9 @@ function Dashboard({ onNavigate }: DashboardProps) {
           className="action-card"
           onClick={() => onNavigate('Link Checker')}
         >
-          <Link size={30} />
+          <div className="action-card-icon">
+            <Link size={24} />
+          </div>
           <h3>{t('dashboard.check_link_title')}</h3>
           <p>{t('dashboard.check_link_desc')}</p>
           <span>
@@ -266,7 +299,9 @@ function Dashboard({ onNavigate }: DashboardProps) {
           className="action-card"
           onClick={() => onNavigate('Human Review')}
         >
-          <ShieldCheck size={30} />
+          <div className="action-card-icon">
+            <ShieldCheck size={24} />
+          </div>
           <h3>{t('dashboard.human_review_title')}</h3>
           <p>{t('dashboard.human_review_desc')}</p>
           <span>

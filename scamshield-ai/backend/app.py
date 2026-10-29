@@ -522,80 +522,105 @@ RULES = [
     (
         "Urgency or threat",
         re.compile(
-            r"\b(urgent|immediately|act now|within \d+ hours?|"
-            r"account blocked|account suspended|last warning|"
-            r"will be blocked|expires today|"
-            r"turant|jaldi|aaj hi|band ho jayega|block ho jayega|"
+            r"\b(urgent|urgently|immediate|immediately|act now|within \d+ hours?|"
+            r"today itself|expires? today|last warning|final notice|"
+            r"account (?:blocked|suspended|restricted|frozen|locked|deactivated|closed)|"
+            r"will be (?:blocked|suspended|disconnected|cut off|terminated|closed)|"
+            r"disconnected tonight|power will be|challan pending|license suspension|court summons|"
+            r"turant|jaldi|aaj hi|band ho (?:jayega|raha hai)|block ho (?:jayega|gaya)|"
             r"tatkal|tavarit|aataach|band hoil|"
             r"तुरंत|जल्दी|तातडीने|लगेच|ब्लॉक|बंद होईल|बंद हो जाएगा)\b",
-            re.I,
-        ),
-        20,
-    ),
-    (
-        "Sensitive information request",
-        re.compile(
-            r"\b(otp|one.time password|cvv|pin number|"
-            r"card number|bank password|internet banking password|"
-            r"upi pin|verification code|"
-            r"khata number|aadhaar|pan card|"
-            r"ओटीपी|पिन|पासवर्ड|खाता क्रमांक|आधार कार्ड)\b",
             re.I,
         ),
         30,
     ),
     (
+        "Sensitive information request",
+        re.compile(
+            r"\b(otp|one.time password|cvv|pin number|upi pin|"
+            r"card number|expiry date|bank password|internet banking password|"
+            r"netbanking password|verification code|khata number|aadhaar|pan card|pan details|"
+            r"ओटीपी|पिन|पासवर्ड|खाता क्रमांक|आधार कार्ड|कार्ड नंबर)\b",
+            re.I,
+        ),
+        35,
+    ),
+    (
         "Suspicious payment request",
         re.compile(
             r"\b(send money|pay immediately|processing fee|"
-            r"advance payment|claim fee|refund fee|"
-            r"transfer funds|pay to receive|prize fee|"
+            r"advance payment|advance fee|claim fee|refund fee|registration fee|"
+            r"documentation fee|documentation charge|stamp duty|penalty|"
+            r"transfer funds|pay to receive|prize fee|deposit fee|security deposit|"
             r"paise bhejo|rupaye transfer|shulk|dhan rashi|"
             r"पैसे पाठवा|पैसे भेजो|शुल्क|अ‍ॅडव्हान्स|पैसे भरा)\b",
             re.I,
         ),
-        25,
+        30,
     ),
     (
-        "Prize or unrealistic reward",
+        "Prize, reward points or unrealistic offer",
         re.compile(
-            r"\b(you have won|you've won|lottery winner|"
-            r"free prize|guaranteed profit|double your money|"
+            r"\b(you have won|you've won|lottery winner|lucky draw|"
+            r"reward points?|bonus points|redeem points?|convert to cash|cashback reward|"
+            r"scratch card|free prize|guaranteed profit|double your money|"
             r"free gift|claim your reward|"
-            r"inaam|lottery|jeet gaye|jeeta|mufat|"
+            r"inaam|lottery|jeet gaye|jeeta|mufat|बधाई|"
             r"इनाम|लॉटरी|जिंकलात|बक्षीस|फुकट|मोफत)\b",
             re.I,
         ),
-        20,
+        30,
     ),
     (
-        "Suspicious link",
-        re.compile(r"(https?://|www\.|\.apk|\.xyz|\.top|\.click)", re.I),
-        10,
+        "Suspicious link or unverified domain",
+        re.compile(r"(https?://|www\.|\.apk|\.xyz|\.top|\.click|\.site|\.online|\.vip|\.cc|\.work|\.loan|\.gq|\.cf|\.tk|\.ga|\.ml|bit\.ly|tinyurl\.com|is\.gd|rb\.gy|cutt\.ly|t\.co)", re.I),
+        25,
     ),
     (
-        "Impersonation or verification",
+        "Impersonation or institutional verification",
         re.compile(
-            r"\b(verify your account|kyc update|"
-            r"update kyc|bank official|customer care number|"
-            r"police case|digital arrest|arrest warrant|"
-            r"bijli bill|light bill|electricity bill|"
+            r"\b(verify your account|kyc update|update (?:your )?(?:kyc|pan|aadhaar)|"
+            r"bank official|customer care number|helpline number|"
+            r"police (?:case|department|officer)|digital arrest|arrest warrant|"
+            r"cbi|customs|narcotics|court summons|income tax|"
+            r"fastag|e.?challan|traffic police|india post|courier parcel|"
+            r"bijli bill|light bill|electricity (?:bill|officer|department)|"
             r"विज बिल|केवायसी|डिजिटल अटक|पोलीस|बँक अधिकारी)\b",
             re.I,
         ),
-        20,
+        30,
     ),
     (
         "Remote access or unknown application",
         re.compile(
-            r"\b(install anydesk|install teamviewer|"
-            r"screen sharing app|remote access|"
-            r"install this apk|download this apk|"
+            r"\b(install anydesk|install teamviewer|quicksupport|rustdesk|"
+            r"screen sharing|remote access|"
+            r"install this apk|download this apk|download apk|"
             r"app download karo|apk install kara|"
             r"अ‍ॅप डाउनलोड करा|अ‍ॅप इन्स्टॉल करा)\b",
             re.I,
         ),
-        25,
+        35,
+    ),
+    (
+        "Delivery or parcel address problem",
+        re.compile(
+            r"\b(package.*address|parcel.*address|incomplete address|"
+            r"could not be delivered|undelivered|reschedule delivery|"
+            r"held at warehouse|consignment)\b",
+            re.I,
+        ),
+        30,
+    ),
+    (
+        "Emergency friend or family money request",
+        re.compile(
+            r"\b(dropped my phone|lost my phone|lost my wallet|"
+            r"in hospital|severe medical emergency|admitted in icu|"
+            r"send.*to this upi|transfer.*to this upi|friend's number)\b",
+            re.I,
+        ),
+        30,
     ),
 ]
 
@@ -809,150 +834,240 @@ INDICATOR_TRANSLATIONS = {
         "Sensitive information request": "संवेदनशील जानकारी (OTP/पिन/पासवर्ड) की मांग",
         "Suspicious payment request": "संदेहास्पद भुगतान या शुल्क अनुरोध",
         "Prize or unrealistic reward": "नकली लॉटरी या अवास्तविक पुरस्कार",
+        "Prize, reward points or unrealistic offer": "नकली लॉटरी, रिवॉर्ड पॉइंट या अवास्तविक पुरस्कार",
         "Suspicious link": "संदेहास्पद या असुरक्षित वेब लिंक",
+        "Suspicious link or unverified domain": "संदेहास्पद लिंक या असत्यापित वेब डोमेन",
         "Impersonation or verification": "नकली बैंक/विभाग अधिकारी का रूप धारण",
+        "Impersonation or institutional verification": "नकली बैंक/विभाग/संस्था अधिकारी का रूप धारण",
         "Remote access or unknown application": "रिमोट एक्सेस या अज्ञात APK ऐप डाउनलोड",
+        "Delivery or parcel address problem": "डाक/कूरियर पार्सल पता अपडेट करने का झांसा",
+        "Emergency friend or family money request": "मित्र या परिजन के आपातकालीन धन अनुरोध का झांसा",
         "Utility disconnection extortion": "बिजली/यूटिलिटी कनेक्शन काटने की धमकी (Extortion)",
         "Advance-fee lottery fraud": "नकली लॉटरी और अग्रिम शुल्क धोखाधड़ी (Lottery Fraud)",
         "Banking KYC credential phishing": "बैंक खाता ब्लॉक और फ़िशिंग लिंक (Banking Phishing)",
         "Law enforcement impersonation threat": "डिजिटल अरेस्ट / पुलिस / सीबीआई का फर्जी डर (Digital Arrest)",
         "Task / Part-time employment scam": "यूट्यूब लाइक / पार्ट-टाइम जॉब टास्क फ्रॉड (Job Scam)",
         "Malicious APK / Remote access software": "खतरनाक APK ऐप या स्क्रीन शेयरिंग अनुरोध (Malware / AnyDesk)",
+        "Postal delivery address phishing": "इंडिया पोस्ट / कूरियर पार्सल फ़िशिंग लिंक (Courier Phishing)",
+        "FASTag / E-Challan toll penalty phishing": "फास्टैग या ट्रैफिक ई-चालान फर्जी पेनल्टी लिंक (FASTag / Challan)",
+        "Reward points / Cashback redemption phishing": "क्रेडिट कार्ड रिवॉर्ड पॉइंट / कैशबैक रिडीम फ़िशिंग (Reward Phishing)",
+        "Emergency family impersonation UPI scam": "परिवार/मित्र तोतयागिरी UPI फ्रॉड (Impersonation UPI)",
     },
     "Marathi": {
         "Urgency or threat": "तातडी किंवा भीती दाखवणारा मेसेज (Urgency / Threat)",
         "Sensitive information request": "संवेदनशील माहितीची (OTP/पिन/पासवर्ड) मागणी",
         "Suspicious payment request": "संशयास्पद पैशांची मागणी किंवा आगाऊ शुल्क",
         "Prize or unrealistic reward": "बनावट लॉटरी किंवा अवास्तव बक्षीस",
+        "Prize, reward points or unrealistic offer": "बनावट लॉटरी, रिवॉर्ड पॉइंट्स किंवा अवास्तव बक्षीस",
         "Suspicious link": "संशयास्पद किंवा धोकादायक वेब लिंक",
+        "Suspicious link or unverified domain": "संशयास्पद लिंक किंवा धोकादायक वेब डोमेन",
         "Impersonation or verification": "बनावट बँक/विभागीय अधिकारी तोतयागिरी",
+        "Impersonation or institutional verification": "बनावट बँक/विभागीय अधिकारी तोतयागिरी",
         "Remote access or unknown application": "रिमोट अ‍ॅक्सेस किंवा अज्ञात APK अ‍ॅप डाऊनलोड",
+        "Delivery or parcel address problem": "कूरियर/पार्सल पत्ता अपडेट करण्याचा बनाव",
+        "Emergency friend or family money request": "मित्र किंवा नातेवाईक आणीबाणी पैशांची मागणी",
         "Utility disconnection extortion": "वीज पुरवठा खंडित करण्याची धमकी (खंडणी)",
         "Advance-fee lottery fraud": "बनावट लॉटरी व आगाऊ शुल्क फसवणूक (लॉटरी घोटाळा)",
         "Banking KYC credential phishing": "बँक खाते ब्लॉक व फिशिंग लिंक (बँकिंग फसवणूक)",
         "Law enforcement impersonation threat": "डिजिटल अटक / पोलीस / सीबीआय तोतयागिरी (डिजिटल अरेस्ट)",
         "Task / Part-time employment scam": "पार्ट-टाइम जॉब / यूट्यूब लाईक टास्क घोटाळा (नोकरी घोटाळा)",
         "Malicious APK / Remote access software": "धोकादायक APK अ‍ॅप किंवा स्क्रीन शेअरिंग विनंती (AnyDesk)",
+        "Postal delivery address phishing": "इंडिया पोस्ट / कूरियर डिलिव्हरी फिशिंग लिंक (Courier Phishing)",
+        "FASTag / E-Challan toll penalty phishing": "फास्टॅग किंवा ई-चलन दंड फसवणूक लिंक (FASTag / Challan)",
+        "Reward points / Cashback redemption phishing": "क्रेडिट कार्ड रिवॉर्ड पॉईंट्स रिडीम फिशिंग (Reward Phishing)",
+        "Emergency family impersonation UPI scam": "नातेवाईक तोतयागिरी UPI घोटाळा (Impersonation UPI)",
     },
     "Tamil": {
         "Urgency or threat": "அவசரம் அல்லது அச்சுறுத்தல் செய்தி (Urgency / Threat)",
         "Sensitive information request": "ரகசிய தகவல் (OTP/PIN/கடவுச்சொல்) கோரிக்கை",
         "Suspicious payment request": "சந்தேகத்திற்குரிய கட்டண கோரிக்கை",
         "Prize or unrealistic reward": "போலி லாட்டரி அல்லது பரிசு அறிவிப்பு",
+        "Prize, reward points or unrealistic offer": "போலி லாட்டரி, ரிவார்ட் புள்ளிகள் அல்லது பரிசு",
         "Suspicious link": "சந்தேகத்திற்குரிய இணைய இணைப்பு",
+        "Suspicious link or unverified domain": "சந்தேகத்திற்குரிய இணைய இணைப்பு அல்லது டொமைன்",
         "Impersonation or verification": "அங்கீகரிக்கப்படாத அதிகாரி போல் ஆள்மாறாட்டம்",
+        "Impersonation or institutional verification": "அங்கீகரிக்கப்படாத அதிகாரி போல் ஆள்மாறாட்டம்",
         "Remote access or unknown application": "ரிமோட் அணுகல் அல்லது தெரியாத APK செயலி",
+        "Delivery or parcel address problem": "தபால்/கூரியர் முகவரி புதுப்பிப்பு மோசடி",
+        "Emergency friend or family money request": "நண்பர் அல்லது உறவினர் அவசர பண கோரிக்கை",
         "Utility disconnection extortion": "மின்சார இணைப்பு துண்டிப்பு அச்சுறுத்தல்",
         "Advance-fee lottery fraud": "முன்பண கட்டண லாட்டரி மோசடி",
         "Banking KYC credential phishing": "வங்கி கணக்கு முடக்கம் மற்றும் ஃபிஷிங் இணைப்பு",
         "Law enforcement impersonation threat": "டிஜிட்டல் கைது / போலீஸ் மிரட்டல்",
         "Task / Part-time employment scam": "பகுதி நேர வேலை / யூடியூப் லைக் மோசடி",
         "Malicious APK / Remote access software": "தீங்கிழைக்கும் APK அல்லது திரை பகிர்வு கோரிக்கை",
+        "Postal delivery address phishing": "இந்தியா போஸ்ட் பார்சல் ஃபிஷிங் இணைப்பு",
+        "FASTag / E-Challan toll penalty phishing": "பாஸ்டேக் அல்லது போக்குவரத்து சலான் மோசடி",
+        "Reward points / Cashback redemption phishing": "கிரெடிட் கார்டு ரிவார்ட் பாயிண்ட் ஃபிஷிங்",
+        "Emergency family impersonation UPI scam": "குடும்ப ஆள்மாறாட்டம் UPI மோசடி",
     },
     "Telugu": {
         "Urgency or threat": "అత్యవసర లేదా బెదిరింపు సందేశం (Urgency / Threat)",
         "Sensitive information request": "సున్నితమైన సమాచారం (OTP/PIN/పాస్‌వర్డ్) అభ్యర్థన",
         "Suspicious payment request": "అనుమానాస్పద చెల్లింపు అభ్యర్థన",
         "Prize or unrealistic reward": "నకిలీ లాటరీ లేదా బహుమతి ఆఫర్",
+        "Prize, reward points or unrealistic offer": "నకిలీ లాటరీ, రివార్డ్ పాయింట్లు లేదా బహుమతి ఆఫర్",
         "Suspicious link": "అనుమానాస్పద వెబ్ లింక్",
+        "Suspicious link or unverified domain": "అనుమానాస్పద లింక్ లేదా డొమైన్",
         "Impersonation or verification": "నకిలీ అధికారి వేషధారణ",
+        "Impersonation or institutional verification": "నకిలీ సంస్థ/బ్యాంక్ అధికారి వేషధారణ",
         "Remote access or unknown application": "రిమోట్ యాక్సెస్ లేదా తెలియని APK యాప్",
+        "Delivery or parcel address problem": "కొరియర్ పార్సెల్ చిరునామా అప్‌డేట్ మోసం",
+        "Emergency friend or family money request": "స్నేహితుడు లేదా బంధువు అత్యవసర డబ్బు అభ్యర్థన",
         "Utility disconnection extortion": "విద్యుత్ సరఫరా నిలిపివేత బెదిరింపు",
         "Advance-fee lottery fraud": "ముందస్తు రుసుము లాటరీ మోసం",
         "Banking KYC credential phishing": "బ్యాంక్ ఖాతా బ్లాక్ మరియు ఫిషింగ్ లింక్",
         "Law enforcement impersonation threat": "డిజిటల్ అరెస్ట్ / పోలీసుల బెదిరింపు",
         "Task / Part-time employment scam": "పార్ట్-టైమ్ జాబ్ / యూట్యూబ్ లైక్ మోసం",
         "Malicious APK / Remote access software": "హానికరమైన APK లేదా స్క్రీన్ షేరింగ్ సాఫ్ట్‌వేర్",
+        "Postal delivery address phishing": "ఇండియా పోస్ట్ పార్సెల్ ఫిషింగ్ లింక్",
+        "FASTag / E-Challan toll penalty phishing": "ఫాస్ట్‌ట్యాగ్ లేదా ట్రాఫిక్ చలాన్ మోసం",
+        "Reward points / Cashback redemption phishing": "క్రెడిట్ కార్డ్ రివార్డ్ పాయింట్స్ ఫిషింగ్",
+        "Emergency family impersonation UPI scam": "కుటుంబ వేషధారణ UPI మోసం",
     },
     "Kannada": {
         "Urgency or threat": "ತುರ್ತು ಅಥವಾ ಬೆದರಿಕೆ ಸಂದೇಶ (Urgency / Threat)",
         "Sensitive information request": "ಸೂಕ್ಷ್ಮ ಮಾಹಿತಿ (OTP/PIN/ಪಾಸ್‌ವರ್ಡ್) ವಿನಂತಿ",
         "Suspicious payment request": "ಅನುಮಾನಾಸ್ಪದ ಹಣ ಪಾವತಿ ವಿನಂತಿ",
         "Prize or unrealistic reward": "ನಕಲಿ ಲಾಟರಿ ಅಥವಾ ಅವಾಸ್ತವಿಕ ಬಹುಮಾನ",
+        "Prize, reward points or unrealistic offer": "ನಕಲಿ ಲಾಟರಿ, ರಿವಾರ್ಡ್ ಪಾಯಿಂಟ್ಸ್ ಅಥವಾ ಬಹುಮಾನ",
         "Suspicious link": "ಅನುಮಾನಾಸ್ಪದ ವೆಬ್ ಲಿಂಕ್",
+        "Suspicious link or unverified domain": "ಅನುಮಾನಾಸ್ಪದ ಲಿಂಕ್ ಅಥವಾ ಡೊಮೇನ್",
         "Impersonation or verification": "ನಕಲಿ ಅಧಿಕಾರಿ ಸೋಗು ಹಾಕುವಿಕೆ",
+        "Impersonation or institutional verification": "ನಕಲಿ ಬ್ಯಾಂಕ್/ಅಧಿಕಾರಿ ಸೋಗು ಹಾಕುವಿಕೆ",
         "Remote access or unknown application": "ರಿಮೋಟ್ ಪ್ರವೇಶ ಅಥವಾ ಅಪರಿಚಿತ APK ಆ್ಯಪ್",
+        "Delivery or parcel address problem": "ಪಾರ್ಸೆಲ್ ವಿಳಾಸ ಅಪ್ಡೇಟ್ ವಂಚನೆ",
+        "Emergency friend or family money request": "ತುರ್ತು ಹಣ ವಿನಂತಿ ವಂಚನೆ",
         "Utility disconnection extortion": "ವಿದ್ಯುತ್ ಸಂಪರ್ಕ ಕಡಿತದ ಬೆದರಿಕೆ",
         "Advance-fee lottery fraud": "ಮುಂಗಡ ಶುಲ್ಕ ಲಾಟರಿ ವಂಚನೆ",
         "Banking KYC credential phishing": "ಬ್ಯಾಂಕ್ ಖಾತೆ ಬ್ಲಾಕ್ ಮತ್ತು ಫಿಶಿಂಗ್ ಲಿಂಕ್",
         "Law enforcement impersonation threat": "ಡಿಜಿಟಲ್ ಬಂಧನ / ಪೊಲೀಸ್ ಬೆದರಿಕೆ",
         "Task / Part-time employment scam": "ಭಾಗಶಃ ಉದ್ಯೋಗ / ಯೂಟ್ಯೂಬ್ ಲೈಕ್ ಟಾಸ್ಕ್ ವಂಚನೆ",
         "Malicious APK / Remote access software": "ಅಪಾಯಕಾರಿ APK ಅಥವಾ ಸ್ಕ್ರೀನ್ ಶೇರಿಂಗ್ ಸಾಫ್ಟ್‌ವೇರ್",
+        "Postal delivery address phishing": "ಇಂಡಿಯಾ ಪೋಸ್ಟ್ ಪಾರ್ಸೆಲ್ ಫಿಶಿಂಗ್ ಲಿಂಕ್",
+        "FASTag / E-Challan toll penalty phishing": "ಫಾಸ್ಟ್ಯಾಗ್ ಅಥವಾ ಟ್ರಾಫಿಕ್ ಚಲನ್ ವಂಚನೆ",
+        "Reward points / Cashback redemption phishing": "ಕ್ರೆಡಿಟ್ ಕಾರ್ಡ್ ರಿವಾರ್ಡ್ ಪಾಯಿಂಟ್ಸ್ ಫಿಶಿಂಗ್",
+        "Emergency family impersonation UPI scam": "ಕುಟುಂಬದ ಸೋಗು ಹಾಕುವ UPI ವಂಚನೆ",
     },
     "Malayalam": {
         "Urgency or threat": "അടിയന്തര അല്ലെങ്കിൽ ഭീഷണി സന്ദേശം (Urgency / Threat)",
         "Sensitive information request": "രഹസ്യ വിവരങ്ങൾ (OTP/PIN/പാസ്‌വേഡ്) ആവശ്യപ്പെടൽ",
         "Suspicious payment request": "സംശയാസ്പദമായ പേയ്‌മെന്റ് അഭ്യർത്ഥന",
         "Prize or unrealistic reward": "വ്യാജ ലോട്ടറി അല്ലെങ്കിൽ സമ്മാന വാഗ്ദാനം",
+        "Prize, reward points or unrealistic offer": "വ്യാജ ലോട്ടറി, റിവാർഡ് പോയിന്റുകൾ അല്ലെങ്കിൽ സമ്മാനം",
         "Suspicious link": "സംശയാസ്പദമായ വെബ് ലിങ്ക്",
+        "Suspicious link or unverified domain": "സംശയാസ്പദമായ ലിങ്ക് അല്ലെങ്കിൽ ഡൊമെയ്ൻ",
         "Impersonation or verification": "വ്യാജ ഉദ്യോഗസ്ഥ ചമയൽ",
+        "Impersonation or institutional verification": "വ്യാജ സ്ഥാപന/ഉദ്യോഗസ്ഥ ചമയൽ",
         "Remote access or unknown application": "റിമോട്ട് ആക്‌സസ് അല്ലെങ്കിൽ അപരിചിത APK ആപ്പ്",
+        "Delivery or parcel address problem": "കൊറിയർ പാർസൽ വിലാസ തട്ടിപ്പ്",
+        "Emergency friend or family money request": "അടിയന്തര പണ അഭ്യർത്ഥന തട്ടിപ്പ്",
         "Utility disconnection extortion": "വൈദ്യുതി ബന്ധം വിച്ഛേദിക്കുമെന്ന ഭീഷണി",
         "Advance-fee lottery fraud": "മുൻകൂർ ഫീസ് ലോട്ടറി തട്ടിപ്പ്",
         "Banking KYC credential phishing": "ബാങ്ക് അക്കൗണ്ട് ബ്ലോക്കും ഫിഷിംഗ് ലിങ്കും",
         "Law enforcement impersonation threat": "ഡിജിറ്റൽ അറസ്റ്റ് / പോലീസ് ഭീഷണി",
         "Task / Part-time employment scam": "പാർട്ട് ടൈം ജോലി / യൂട്യൂബ് ലൈക്ക് തട്ടിപ്പ്",
         "Malicious APK / Remote access software": "അപകടകരമായ APK അല്ലെങ്കിൽ സ്‌ക്രീൻ പങ്കിടൽ അഭ്യർത്ഥന",
+        "Postal delivery address phishing": "ഇന്ത്യ പോസ്റ്റ് പാർസൽ ഫിഷിംഗ് ലിങ്ക്",
+        "FASTag / E-Challan toll penalty phishing": "ഫാസ്റ്റ് ടാഗ് അല്ലെങ്കിൽ ചെലാൻ തട്ടിപ്പ്",
+        "Reward points / Cashback redemption phishing": "ക്രെഡിറ്റ് കാർഡ് റിവാർഡ് പോയിന്റ് ഫിഷിംഗ്",
+        "Emergency family impersonation UPI scam": "കുടുംബാംഗ വ്യാജ UPI തട്ടിപ്പ്",
     },
     "Gujarati": {
         "Urgency or threat": "તાકીદ અથવા ધમકીભર્યો સંદેશ (Urgency / Threat)",
         "Sensitive information request": "સંવેદનશીલ વિગતો (OTP/PIN/પાસવર્ડ) માંગણી",
         "Suspicious payment request": "શંકાસ્પદ ચુકવણી અથવા ફી વિનંતી",
         "Prize or unrealistic reward": "નકલી લૉટરી અથવા અવાસ્તવિક ઇનામ",
+        "Prize, reward points or unrealistic offer": "નકલી લૉટરી, રિવૉર્ડ પોઈન્ટ અથવા અવાસ્તવિક ઇનામ",
         "Suspicious link": "શંકાસ્પદ અથવા અસુરક્ષિત વેબ લિંક",
+        "Suspicious link or unverified domain": "શંકાસ્પદ લિંક અથવા અસુરક્ષિત ડોમેન",
         "Impersonation or verification": "નકલી બેંક/વિભાગીય અધિકારી બનવું",
+        "Impersonation or institutional verification": "નકલી બેંક/સંસ્થાના અધિકારી બનવું",
         "Remote access or unknown application": "રિમોટ એક્સેસ અથવા અજાણી APK એપ",
+        "Delivery or parcel address problem": "પાર્સલ સરનામું અપડેટ કરવાની છેતરપિંડી",
+        "Emergency friend or family money request": "મિત્ર કે સંબંધીના નામે કટોકટીમાં પૈસાની માંગ",
         "Utility disconnection extortion": "વીજળી કનેક્શન કાપવાની ધમકી",
         "Advance-fee lottery fraud": "એડવાન્સ ફી લૉટરી છેતરપિંડી",
         "Banking KYC credential phishing": "બેંક ખાતું બ્લોક અને ફિશિંગ લિંક",
         "Law enforcement impersonation threat": "ડિજિટલ ધરપકડ / પોલીસનો નકલી ડર",
         "Task / Part-time employment scam": "પાર્ટ-ટાઇમ જોબ / યુટ્યુબ લાઇક ટાસ્ક ફ્રોડ",
         "Malicious APK / Remote access software": "ખતરનાક APK એપ અથવા સ્ક્રીન શેરિંગ વિનંતી",
+        "Postal delivery address phishing": "ઇન્ડિયા પોસ્ટ પાર્સલ ફિશિંગ લિંક",
+        "FASTag / E-Challan toll penalty phishing": "ફાસ્ટેગ અથવા ટ્રાફિક ઇ-ચલણ છેતરપિંડી",
+        "Reward points / Cashback redemption phishing": "ક્રેડિટ કાર્ડ રિવૉર્ડ પોઇન્ટ ફિશિંગ",
+        "Emergency family impersonation UPI scam": "કુટુંબના નામે બનાવટી UPI ફ્રોડ",
     },
     "Rajasthani": {
         "Urgency or threat": "तातकाळ या धमकी वाळो मेसेज (Urgency / Threat)",
         "Sensitive information request": "गोपनीय जानकारी (OTP/पिन/पासवर्ड) री मांग",
         "Suspicious payment request": "संशय वाळी पेमेंट री मांग",
         "Prize or unrealistic reward": "झूठी लॉटरी या इनाम रो लालच",
+        "Prize, reward points or unrealistic offer": "झूठी लॉटरी, रिवॉर्ड पॉइंट या इनाम रो लालच",
         "Suspicious link": "संशय वाळी वेब लिंक",
+        "Suspicious link or unverified domain": "संशय वाळी लिंक या वेब डोमेन",
         "Impersonation or verification": "फर्जी अधिकारी बण’र ठगी",
+        "Impersonation or institutional verification": "फर्जी बैंक/विभाग अधिकारी बण’र ठगी",
         "Remote access or unknown application": "रिमोट एक्सेस या अनजाणी APK ऐप",
+        "Delivery or parcel address problem": "पार्सल रो पत्तो सुधारण रो झांसो",
+        "Emergency friend or family money request": "मित्र या परिवार वाळा बण’र रुपिया मांगण री ठगी",
         "Utility disconnection extortion": "बिजली काटन री धमकी",
         "Advance-fee lottery fraud": "अग्रिम फीस लॉटरी धोखाधड़ी",
         "Banking KYC credential phishing": "बैंक खातो बंद अर फ़िशिंग लिंक",
         "Law enforcement impersonation threat": "डिजिटल अरेस्ट / पुलिस रो फर्जी डर",
         "Task / Part-time employment scam": "पार्ट-टाइम नौकरी / यूट्यूब टास्क ठगी",
         "Malicious APK / Remote access software": "खतरनाक APK ऐप या स्क्रीन शेयरिंग मांग",
+        "Postal delivery address phishing": "डाक पार्सल फ़िशिंग लिंक",
+        "FASTag / E-Challan toll penalty phishing": "फास्टैग या ट्रैफिक चालान ठगी",
+        "Reward points / Cashback redemption phishing": "क्रेडिट कार्ड रिवॉर्ड पॉइंट फ़िशिंग",
+        "Emergency family impersonation UPI scam": "परिवार तोतयागिरी UPI ठगी",
     },
     "Nepali": {
         "Urgency or threat": "अत्यावश्यक वा धम्कीपूर्ण सन्देश (Urgency / Threat)",
         "Sensitive information request": "संवेदनशील जानकारी (OTP/पिन/पासवर्ड) माग",
         "Suspicious payment request": "शंकास्पद भुक्तानी वा शुल्क अनुरोध",
         "Prize or unrealistic reward": "नक्कली चिठ्ठा वा अवास्तविक पुरस्कार",
+        "Prize, reward points or unrealistic offer": "नक्कली चिठ्ठा, रिवार्ड पोइन्ट्स वा पुरस्कार",
         "Suspicious link": "शंकास्पद वा असुरक्षित वेब लिङ्क",
+        "Suspicious link or unverified domain": "शंकास्पद लिङ्क वा असुरक्षित डोमेन",
         "Impersonation or verification": "नक्कली अधिकारीको भेष धारण",
+        "Impersonation or institutional verification": "नक्कली बैंक/अधिकारीको भेष धारण",
         "Remote access or unknown application": "रिमोट पहुँच वा अज्ञात APK एप",
+        "Delivery or parcel address problem": "पार्सल ठेगाना अपडेट ठगी",
+        "Emergency friend or family money request": "आकस्मिक पैसा माग गर्ने ठगी",
         "Utility disconnection extortion": "बिजुली/सेवा काट्ने धम्की",
         "Advance-fee lottery fraud": "अग्रिम शुल्क चिठ्ठा ठगी",
         "Banking KYC credential phishing": "बैंक खाता बन्द र फिसिङ लिङ्क",
         "Law enforcement impersonation threat": "डिजिटल पक्राउ / प्रहरीको नक्कली डर",
         "Task / Part-time employment scam": "पार्ट-टाइम काम / युट्युब लाइक टास्क ठगी",
         "Malicious APK / Remote access software": "खतरनाक APK एप वा स्क्रिन सेयरिङ अनुरोध",
+        "Postal delivery address phishing": "हुलाक पार्सल फिसिङ लिङ्क",
+        "FASTag / E-Challan toll penalty phishing": "ट्राफिक जरિवाना वा फास्ट्याग ठगी",
+        "Reward points / Cashback redemption phishing": "क्रेडिट कार्ड रिवार्ड फिसिङ",
+        "Emergency family impersonation UPI scam": "परिवार भेषधारी UPI ठगी",
     },
     "Assamese": {
         "Urgency or threat": "জৰুৰী বা ভাবুকিপূৰ্ণ বাৰ্তা (Urgency / Threat)",
         "Sensitive information request": "সংবেদনশীল তথ্য (OTP/PIN/পাছৱৰ্ড) দাবী",
         "Suspicious payment request": "সন্দেহজনক ধন পৰিশোধৰ অনুৰোধ",
         "Prize or unrealistic reward": "ভুৱা লটাৰী বা অবাস্তৱ পুৰস্কাৰ",
+        "Prize, reward points or unrealistic offer": "ভুৱা লটাৰী, পুৰস্কাৰ পইণ্ট বা অফাৰ",
         "Suspicious link": "সন্দেহজনক ৱেব লিংক",
+        "Suspicious link or unverified domain": "সন্দেহজনক লিংক বা ডমেইন",
         "Impersonation or verification": "ভুৱা বিষয়াৰ বেশ ধাৰণ",
+        "Impersonation or institutional verification": "ভুৱা বেংক/চৰকাৰী বিষয়াৰ বেশ ধাৰণ",
         "Remote access or unknown application": "ৰিম'ট প্ৰৱেশ বা অচিনাকি APK এপ",
+        "Delivery or parcel address problem": "পাৰ্চেল ঠিকনা আপডেটৰ প্ৰৱঞ্চনা",
+        "Emergency friend or family money request": "জৰুৰী টকা বিচৰা প্ৰৱঞ্চনা",
         "Utility disconnection extortion": "বিদ্যুৎ সংযোগ বিচ্ছিন্ন কৰাৰ ভাবুকি",
         "Advance-fee lottery fraud": "আগধন লটাৰী প্ৰৱঞ্চনা",
         "Banking KYC credential phishing": "বেংক একাউণ্ট বন্ধ আৰু ফিছিং লিংক",
         "Law enforcement impersonation threat": "ডিজিটেল গ্ৰেপ্তাৰ / আৰক্ষীৰ ভাবুকি",
         "Task / Part-time employment scam": "পাৰ্ট-টাইম চাকৰি / ইউটিউব লাইক প্ৰৱঞ্চনা",
         "Malicious APK / Remote access software": "বিপদজনক APK এপ বা স্ক্ৰীণ শ্বেয়াৰ অনুৰোধ",
+        "Postal delivery address phishing": "ইণ্ডিয়া পোষ্ট পাৰ্চেল ফিছিং লিংক",
+        "FASTag / E-Challan toll penalty phishing": "ফাষ্টেগ বা ট্ৰেফিক চালান প্ৰৱঞ্চনা",
+        "Reward points / Cashback redemption phishing": "ক্ৰেডিট কাৰ্ড ৰিৱাৰ্ড পইণ্ট ফিছিং",
+        "Emergency family impersonation UPI scam": "পৰিয়ালৰ বেশধাৰী UPI প্ৰৱঞ্চনা",
     },
 }
 
@@ -969,9 +1084,9 @@ def analyze_message(message, language="English"):
 
     # --- Compound Threat Synergy (Lethal Fraud Combinations) ---
     # 1. Electricity / Utility disconnection threat + contact number or urgent countdown
-    if re.search(r"\b(electricity|light bill|bijli|power|mahavitaran|bses|विज|बिजली)\b", lower, re.I) and \
-       re.search(r"\b(disconnect|cut off|will be cut|pending bill|काट दी|खंडित)\b", lower, re.I):
-        score = max(score, 90)
+    if re.search(r"\b(electricity|light bill|bijli|power|mahavitaran|bses|dhbvn|uppcl|tneb|bescom|wbsedcl|विज|बिजली)\b", lower, re.I) and \
+       re.search(r"\b(disconnect(?:ed|ion)?|cut off|will be cut|pending bill|काट दी|खंडित)\b", lower, re.I):
+        score = max(score, 92)
         raw_indicators.append("Utility disconnection extortion")
 
     # 2. Lottery / KBC / Prize + Large amount or helpline
@@ -980,32 +1095,59 @@ def analyze_message(message, language="English"):
         score = max(score, 95)
         raw_indicators.append("Advance-fee lottery fraud")
 
-    # 3. Bank blocked / suspended + KYC link or OTP
-    if re.search(r"\b(sbi|hdfc|icici|axis|pnb|kotak|bank|खाता|बँक)\b", lower, re.I) and \
-       re.search(r"\b(blocked|suspended|deactivated|closed|बंद|ब्लॉक)\b", lower, re.I) and \
-       re.search(r"\b(kyc|pan|aadhaar|link|verify|update|http|\.xyz|\.top)\b", lower, re.I):
+    # 3. Bank blocked / suspended / restricted + KYC / PAN link or OTP
+    if re.search(r"\b(sbi|hdfc|icici|axis|pnb|kotak|bob|canara|bank|netbanking|खाता|बँक)\b", lower, re.I) and \
+       re.search(r"\b(block(?:ed)?|suspend(?:ed)?|restrict(?:ed)?|deactivat(?:ed)?|clos(?:ed)?|frozen|locked|बंद|ब्लॉक|expir(?:ed)?)\b", lower, re.I) and \
+       re.search(r"\b(kyc|pan|aadhaar|link|verify|update|http|\.xyz|\.top|\.com|\.in|\.me|\.online|bit\.ly)\b", lower, re.I):
         score = max(score, 95)
         raw_indicators.append("Banking KYC credential phishing")
 
     # 4. Digital arrest / Police / CBI / Customs parcel threat
-    if re.search(r"\b(digital arrest|cbi|police|narcotics|customs|court summons|डिजिटल अरेस्ट|पोलीस)\b", lower, re.I):
-        score = max(score, 95)
+    if re.search(r"\b(digital arrest|cbi|police|narcotics|ncb|customs|court summons|money laundering|arrest warrant|डिजिटल अरेस्ट|पोलीस|सीबीआई)\b", lower, re.I):
+        score = max(score, 96)
         raw_indicators.append("Law enforcement impersonation threat")
 
     # 5. Part-time Job / YouTube like / Telegram task fraud
-    if re.search(r"\b(part time|work from home|earn \d+|daily|पार्ट टाइम|घर बैठे)\b", lower, re.I) and \
-       re.search(r"\b(youtube|telegram|like video|review|registration fee)\b", lower, re.I):
-        score = max(score, 88)
+    if re.search(r"\b(part time|work from home|earn \d+|daily income|पार्ट टाइम|घर बैठे)\b", lower, re.I) and \
+       re.search(r"\b(youtube|telegram|lik(?:e|ing) video|liking|review|subscribe|registration fee|daily payout)\b", lower, re.I):
+        score = max(score, 90)
         raw_indicators.append("Task / Part-time employment scam")
 
     # 6. Remote screen sharing / APK install threat
-    if re.search(r"\b(anydesk|teamviewer|quicksupport|install this apk|download apk|अ‍ॅप डाउनलोड)\b", lower, re.I):
-        score = max(score, 90)
+    if re.search(r"\b(anydesk|teamviewer|quicksupport|rustdesk|install (?:this )?apk|download (?:this )?apk|अ‍ॅप डाउनलोड)\b", lower, re.I):
+        score = max(score, 94)
         raw_indicators.append("Malicious APK / Remote access software")
+
+    # 7. Postal / Courier parcel address update phishing (India Post, BlueDart, etc.)
+    if re.search(r"\b(india post|post office|parcel|package|courier|delivery|shipment|consignment)\b", lower, re.I) and \
+       re.search(r"\b(address|undelivered|incomplete|fail(?:ed)?|reschedule|held|warehouse|update)\b", lower, re.I) and \
+       re.search(r"(http|link|\.com|\.in|\.top|\.xyz|\.click|within \d+ hours?)", lower, re.I):
+        score = max(score, 92)
+        raw_indicators.append("Postal delivery address phishing")
+
+    # 8. FASTag / E-Challan toll penalty phishing
+    if re.search(r"\b(fastag|challan|e-challan|vahan|traffic fine|traffic police)\b", lower, re.I) and \
+       re.search(r"\b(blacklist(?:ed)?|block(?:ed)?|pending|penalty|court|summons|pay now|http|verify|update)\b", lower, re.I):
+        score = max(score, 92)
+        raw_indicators.append("FASTag / E-Challan toll penalty phishing")
+
+    # 9. Reward points / Cashback redemption phishing
+    if re.search(r"\b(credit card|hdfc|sbi|icici|axis|reward points?|bonus points|cashback)\b", lower, re.I) and \
+       re.search(r"\b(expir(?:ing|ed|es)?|redeem|convert to cash|claim now)\b", lower, re.I) and \
+       re.search(r"(http|link|\.com|\.in|\.xyz|\.top|\.online|bit\.ly)", lower, re.I):
+        score = max(score, 94)
+        raw_indicators.append("Reward points / Cashback redemption phishing")
+
+    # 10. Emergency family / friend UPI impersonation
+    if re.search(r"\b(mom|dad|papa|mummy|bro|brother|friend|beta|bhai)\b", lower, re.I) and \
+       re.search(r"\b(dropped my phone|lost my phone|in hospital|accident|emergency|urgent money)\b", lower, re.I) and \
+       re.search(r"\b(send|transfer|upi|google pay|phonepe|paytm)\b", lower, re.I):
+        score = max(score, 90)
+        raw_indicators.append("Emergency family impersonation UPI scam")
 
     # --- Legitimate Context Dampeners (Prevent false alarms on authentic receipts & OTPs) ---
     has_safe_otp = bool(re.search(r"\b(never share|bank never asks|do not share with anyone|valid for \d+ min)\b", lower, re.I))
-    has_safe_txn = bool(re.search(r"\b(debited|credited|avl bal|available balance|spent inr|successful transaction)\b", lower, re.I)) and not re.search(r"(http|call|urgent|suspended)", lower, re.I)
+    has_safe_txn = bool(re.search(r"\b(debited|credited|avl bal|available balance|spent inr|successful transaction)\b", lower, re.I)) and not re.search(r"(http|call|urgent|suspended|blocked)", lower, re.I)
 
     if has_safe_txn:
         score = min(score, 10)
@@ -1154,8 +1296,23 @@ Rules:
 - risk_score must be an integer from 0 to 100.
 - risk_level must be one of "Low", "Medium", "High" (keep this literal value for UI logic).
 - Low means 0-39, Medium means 40-74, High means 75-100.
-- Explain evidence rather than making unsupported assumptions.
-- A URL alone does not prove a scam.
+- FRAUD EVALUATION GUIDELINES (CRITICAL):
+  * Official institutions (banks, India Post, electricity boards, traffic police, government agencies) NEVER send SMS/WhatsApp from random 10-digit mobile numbers or use unofficial third-party domains (.xyz, .top, .click, .site, .vip, bit.ly, etc.).
+  * HIGH RISK (80-100):
+    - Demands for OTP, PIN, CVV, passwords, or downloading APKs/screen-sharing apps (AnyDesk, TeamViewer).
+    - Threats of electricity/power cutoff tonight with an officer contact number.
+    - Claims of bank account / netbanking / debit card suspended or KYC expired with a verification link.
+    - Law enforcement impersonation (police, CBI, customs, digital arrest, drug parcel seizure).
+    - Lottery, KBC lucky draw, or prize winnings requesting a processing/registration fee.
+    - India Post / courier parcel undelivered asking to update address or pay rescheduling fee via link.
+    - FASTag blacklisted or traffic e-challan penalty links.
+    - Unsolicited part-time job offers (YouTube video liking, Telegram tasks) with daily earnings claims.
+    - Credit card reward point expiry redeem to cash links.
+    - Emergency family/friend impersonation demanding urgent UPI transfers.
+  * MEDIUM RISK (45-74):
+    - Unsolicited promotional offers with high urgency, unfamiliar shortened links, or suspicious contest entries without clear proof of legitimacy.
+  * LOW RISK (0-35):
+    - Only genuinely legitimate messages, such as standard transactional receipts with no links or calls to action, authentic OTP messages with explicit "never share" disclaimers, or normal personal conversations.
 - Give practical, safe recommendations.
 
 MESSAGE TO ANALYSE:
@@ -1236,16 +1393,25 @@ def combine_results(rule_result, ai_result, ml_result, language="English"):
         rule_score = rule_result["risk_score"]
         ml_score = ml_result.get("ml_score", rule_score)
 
-        # Integrated Hybrid ensemble weighted score
-        hybrid_score = int(round(0.45 * gemini_score + 0.35 * rule_score + 0.20 * ml_score))
+        # Threat-dominant engine: In cybersecurity, a single confirmed red flag
+        # must NEVER be averaged down or diluted to "Low" by non-firing engines.
+        max_detected = max(gemini_score, rule_score, ml_score)
 
-        # High-confidence safety floor for confirmed threats
-        if gemini_score >= 80 or rule_score >= 85 or ml_score >= 90:
-            score = max(hybrid_score, gemini_score, rule_score, ml_score)
+        if max_detected >= 75:
+            # Confirmed high risk threat
+            score = max_detected
+        elif max_detected >= 40:
+            # Medium threat: if 2+ engines agree it's a threat (>= 40), provide consensus boost
+            agreed_engines = sum([gemini_score >= 40, rule_score >= 40, ml_score >= 40])
+            bonus = 10 if agreed_engines >= 2 else 0
+            score = min(100, max_detected + bonus)
         elif gemini_score <= 15 and rule_score <= 15 and ml_score <= 20:
-            score = min(hybrid_score, gemini_score, rule_score, ml_score)
+            # All engines agree it is benign/legitimate
+            score = min(gemini_score, rule_score, ml_score)
         else:
-            score = hybrid_score
+            # Ambiguous low-risk range: blend with high anchor
+            weighted = int(round(0.45 * gemini_score + 0.35 * rule_score + 0.20 * ml_score))
+            score = max(weighted, int(max_detected * 0.85))
 
         score = max(0, min(100, score))
 
@@ -1602,21 +1768,31 @@ def scan_image():
         "}"
     )
 
-    try:
-        response = gemini_client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=[
-                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-                prompt
-            ]
-        )
-        text_resp = response.text.strip()
-        if text_resp.startswith("```"):
-            text_resp = re.sub(r"^```(?:json)?\s*", "", text_resp)
-            text_resp = re.sub(r"\s*```$", "", text_resp)
-        result = json.loads(text_resp)
-    except Exception as exc:
-        print("[VISION] Analysis failed:", type(exc).__name__, exc)
+    result = None
+    for model_name in CANDIDATE_GEMINI_MODELS:
+        try:
+            response = gemini_client.models.generate_content(
+                model=model_name,
+                contents=[
+                    types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                    prompt
+                ]
+            )
+            text_resp = (response.text or "").strip()
+            if text_resp.startswith("```"):
+                text_resp = re.sub(r"^```(?:json)?\s*", "", text_resp)
+                text_resp = re.sub(r"\s*```$", "", text_resp)
+            start = text_resp.find("{")
+            end = text_resp.rfind("}")
+            if start != -1 and end != -1:
+                result = json.loads(text_resp[start:end+1])
+                result["ai_model"] = model_name
+                break
+        except Exception as exc:
+            print(f"[VISION] Attempt with {model_name} failed:", type(exc).__name__, exc)
+            continue
+
+    if not result:
         result = {
             "extracted_text": "Could not extract text clearly from image.",
             "risk_score": 35,
