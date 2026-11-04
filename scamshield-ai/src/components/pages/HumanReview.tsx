@@ -63,8 +63,8 @@ export default function HumanReview() {
 
       // 2. Direct Supabase PostgREST fallback
       try {
-        const supaUrl = `${SUPABASE_URL}/rest/v1/scan_history?review_status=eq.pending&order=id.desc`
-        const res = await fetchWithTimeout(supaUrl, { headers: SUPABASE_HEADERS }, 5000)
+        const supaUrl = `${SUPABASE_URL}/rest/v1/scan_history?select=id,message,risk_level,risk_score&review_status=eq.pending&order=id.desc&limit=30`
+        const res = await fetchWithTimeout(supaUrl, { headers: SUPABASE_HEADERS }, 8000)
         if (res.ok) {
           const rows = (await res.json()) as Array<{
             id: number

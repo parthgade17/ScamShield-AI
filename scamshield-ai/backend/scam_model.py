@@ -118,7 +118,19 @@ SCAM_TRAINING_CORPUS: List[str] = [
 
     # Category: Train / IRCTC / Airline Ticket Refund Scams
     "IRCTC refund notification: Your ticket cancellation refund of Rs 1,840 is pending. Download IRCTC support APK to initiate instant UPI refund.",
-    "Air India customer service: For flight cancellation refund, call helpline 9182736450 and share AnyDesk code with refund officer."
+    "Air India customer service: For flight cancellation refund, call helpline 9182736450 and share AnyDesk code with refund officer.",
+
+    # Category: Financial Smishing & Shortened Link Billing Phishing
+    "BDSHAH Clnt A/c 9420946949 received Rs.7,635,00 today. Net Balance Rs.9,476,50. Your today's Bill Amt online: bit.ly/3WizZSl",
+    "Dear customer, transaction of Rs 15,200 pending on your card. Verify immediately: bit.ly/card-verify",
+    "Your HDFC bill of INR 8,420 is overdue. Avoid late penalty by paying here: tinyurl.com/hdfc-bill-pay",
+    "Electricity arrears pending Rs 2,450. Pay now to prevent disconnection: bit.ly/power-bill-pay",
+    "SBI customer: Rs 25,000 debited from your account. If not done by you, report immediately at bit.ly/sbi-dispute",
+    "A/c credit alert: Rs 50,000 received. Check statement details: cutt.ly/bank-stmt",
+    "Income Tax Refund Rs 18,500 pending. Confirm bank account: bit.ly/it-refund-2026",
+    "Your electricity bill is unpaid. Power disconnection tonight. Pay immediately at bit.ly/mseb-bill",
+    "WhatsApp Payment Alert: Rs 45,000 credited. To accept payment, open UPI app and enter your 6-digit UPI PIN immediately.",
+    "PhonePe reward: Enter your UPI PIN to claim cashback of Rs 2,000 into your account."
 ]
 
 LEGIT_TRAINING_CORPUS: List[str] = [
@@ -302,6 +314,16 @@ class ScamClassifierML:
 
         if ("like" in lower_text or "subscribe" in lower_text) and ("youtube" in lower_text or "telegram" in lower_text) and ("daily" in lower_text or "earn" in lower_text or "कमाएं" in lower_text):
             raw_score = max(raw_score, 86)
+
+        # Financial Smishing / Billing phishing with unverified or shortened link
+        if ("clnt" in lower_text or "a/c" in lower_text or "account" in lower_text or "balance" in lower_text or "received" in lower_text or "bill" in lower_text or "due" in lower_text or "invoice" in lower_text or "statement" in lower_text) and \
+           ("bit.ly" in lower_text or "tinyurl" in lower_text or "is.gd" in lower_text or "rb.gy" in lower_text or "cutt.ly" in lower_text or "t.co" in lower_text or ".xyz" in lower_text or ".top" in lower_text or ".online" in lower_text or "http" in lower_text):
+            raw_score = max(raw_score, 88)
+
+        # UPI PIN collection deception
+        if ("upi pin" in lower_text or "enter pin" in lower_text or "enter your pin" in lower_text or "upi pin दर्ज" in lower_text) and \
+           ("receive" in lower_text or "accept" in lower_text or "claim" in lower_text or "credited" in lower_text or "cashback" in lower_text or "reward" in lower_text or "पैसे" in lower_text):
+            raw_score = max(raw_score, 94)
 
         final_score = max(0, min(100, raw_score))
 

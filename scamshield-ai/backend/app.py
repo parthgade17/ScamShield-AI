@@ -29,22 +29,23 @@ from scam_model import ml_classifier
 API_KEY = (
     os.getenv("GEMINI_API_KEY", "")
     or os.getenv("GOOGLE_API_KEY", "")
-).strip()
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+).strip().strip('"').strip("'")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
 DATABASE_URL = (
     os.getenv("DATABASE_URL", "")
     or "postgresql://postgres.braqdveiscllhubnmaqa:Parth%4007091705@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres"
 ).strip()
 
-# Candidate models list with fallback priority
+# Candidate models list with verified working Gemini models in priority order
 CANDIDATE_GEMINI_MODELS = list(
     dict.fromkeys(
         [
             GEMINI_MODEL,
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-1.5-flash",
-            "gemini-1.5-pro",
+            "gemini-3.5-flash-lite",
+            "gemini-3.5-flash",
+            "gemini-3.8-flash",
+            "gemini-flash-latest",
+            "gemini-flash-lite-latest",
         ]
     )
 )
@@ -577,6 +578,15 @@ RULES = [
         25,
     ),
     (
+        "Financial Smishing or unverified link",
+        re.compile(
+            r"\b(clnt|a/c|account|balance|received|credited|debited|bill amt|bill amount|payment|due amt|overdue|invoice|statement)\b[\s\S]{0,100}\b(bit\.ly|tinyurl\.com|is\.gd|rb\.gy|cutt\.ly|t\.co|\.xyz|\.top|\.click|\.site|\.online|\.vip|ngrok)\b|"
+            r"\b(bit\.ly|tinyurl\.com|is\.gd|rb\.gy|cutt\.ly|t\.co|\.xyz|\.top|\.click|\.site|\.online|\.vip|ngrok)\b[\s\S]{0,100}\b(clnt|a/c|account|balance|received|credited|debited|bill amt|bill amount|payment|due amt|overdue|invoice|statement)\b",
+            re.I,
+        ),
+        35,
+    ),
+    (
         "Impersonation or institutional verification",
         re.compile(
             r"\b(verify your account|kyc update|update (?:your )?(?:kyc|pan|aadhaar)|"
@@ -852,6 +862,9 @@ INDICATOR_TRANSLATIONS = {
         "FASTag / E-Challan toll penalty phishing": "फास्टैग या ट्रैफिक ई-चालान फर्जी पेनल्टी लिंक (FASTag / Challan)",
         "Reward points / Cashback redemption phishing": "क्रेडिट कार्ड रिवॉर्ड पॉइंट / कैशबैक रिडीम फ़िशिंग (Reward Phishing)",
         "Emergency family impersonation UPI scam": "परिवार/मित्र तोतयागिरी UPI फ्रॉड (Impersonation UPI)",
+        "Financial Smishing with unverified shortened link": "असुरक्षित शॉर्ट लिंक के साथ फर्जी वित्तीय/बिल संदेश (Financial Smishing)",
+        "Deceptive UPI PIN collection fraud": "पैसे प्राप्त करने के नाम पर UPI पिन मांगने की धोखाधड़ी (UPI PIN Fraud)",
+        "Financial Smishing or unverified link": "असुरक्षित शॉर्ट लिंक के साथ फर्जी वित्तीय संदेश",
     },
     "Marathi": {
         "Urgency or threat": "तातडी किंवा भीती दाखवणारा मेसेज (Urgency / Threat)",
@@ -876,6 +889,9 @@ INDICATOR_TRANSLATIONS = {
         "FASTag / E-Challan toll penalty phishing": "फास्टॅग किंवा ई-चलन दंड फसवणूक लिंक (FASTag / Challan)",
         "Reward points / Cashback redemption phishing": "क्रेडिट कार्ड रिवॉर्ड पॉईंट्स रिडीम फिशिंग (Reward Phishing)",
         "Emergency family impersonation UPI scam": "नातेवाईक तोतयागिरी UPI घोटाळा (Impersonation UPI)",
+        "Financial Smishing with unverified shortened link": "संशयास्पद शॉर्ट लिंकसह बनावट बँक/बिल मेसेज (Financial Smishing)",
+        "Deceptive UPI PIN collection fraud": "पैसे स्वीकारण्यासाठी UPI पिन मागण्याची फसवणूक (UPI PIN Fraud)",
+        "Financial Smishing or unverified link": "संशयास्पद शॉर्ट लिंकसह आर्थिक मेसेज",
     },
     "Tamil": {
         "Urgency or threat": "அவசரம் அல்லது அச்சுறுத்தல் செய்தி (Urgency / Threat)",
@@ -1145,9 +1161,24 @@ def analyze_message(message, language="English"):
         score = max(score, 90)
         raw_indicators.append("Emergency family impersonation UPI scam")
 
+    # 11. Financial Smishing (Account / Transaction / Bill claim paired with shortened link or unofficial URL)
+    if re.search(r"\b(clnt|a/c|account|balance|received|credited|debited|bill amt|bill amount|payment|paid|due amt|invoice|overdue)\b", lower, re.I) and \
+       re.search(r"\b(bit\.ly|tinyurl\.com|is\.gd|rb\.gy|cutt\.ly|t\.co|wa\.me|\.xyz|\.top|\.click|\.site|\.online|\.vip|ngrok)\b", lower, re.I):
+        score = max(score, 90)
+        raw_indicators.append("Financial Smishing with unverified shortened link")
+
+    # 12. Deceptive UPI PIN collection fraud (Asking for PIN to receive / collect money)
+    if re.search(r"\b(upi pin|enter pin|enter your pin|pin enter|enter 6-digit|enter 4-digit|पिन दर्ज|पिन टाका)\b", lower, re.I) and \
+       re.search(r"\b(receive|collect|accept|claim|credited|cashback|reward|पैसे|स्वीकार)\b", lower, re.I):
+        score = max(score, 95)
+        raw_indicators.append("Deceptive UPI PIN collection fraud")
+
     # --- Legitimate Context Dampeners (Prevent false alarms on authentic receipts & OTPs) ---
-    has_safe_otp = bool(re.search(r"\b(never share|bank never asks|do not share with anyone|valid for \d+ min)\b", lower, re.I))
-    has_safe_txn = bool(re.search(r"\b(debited|credited|avl bal|available balance|spent inr|successful transaction)\b", lower, re.I)) and not re.search(r"(http|call|urgent|suspended|blocked)", lower, re.I)
+    has_any_link = bool(re.search(r"(https?://|www\.|\.com|\.in|\.xyz|\.top|\.online|bit\.ly|tinyurl|is\.gd|cutt\.ly|t\.co|wa\.me)", lower, re.I))
+    has_action_request = bool(re.search(r"(call|contact|click|verify|update|install|download|pay now|send|transfer|report|dispute)", lower, re.I))
+
+    has_safe_otp = bool(re.search(r"\b(never share|bank never asks|do not share with anyone|valid for \d+ min)\b", lower, re.I)) and not has_any_link
+    has_safe_txn = bool(re.search(r"\b(debited|credited|avl bal|available balance|spent inr|successful transaction)\b", lower, re.I)) and not has_any_link and not has_action_request
 
     if has_safe_txn:
         score = min(score, 10)
@@ -1373,8 +1404,9 @@ MESSAGE TO ANALYSE:
 
             except Exception as exc:
                 err_str = str(exc)
-                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                    time.sleep(1.0)
+                print(f"[GEMINI] Model {model_name} attempt {attempt} failed: {type(exc).__name__}: {err_str[:100]}")
+                if ("429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "503" in err_str) and attempt == 0:
+                    time.sleep(0.5)
                     continue
                 else:
                     break
@@ -1456,6 +1488,8 @@ def combine_results(rule_result, ai_result, ml_result, language="English"):
             "indicators": indicators,
             "recommendations": recommendations,
             "detection_method": "rule+Gemini based",
+            "rule_based_score": rule_score,
+            "ai_score": gemini_score,
             "ai_model": ai_result.get("ai_model", GEMINI_MODEL),
         }
 
@@ -1512,6 +1546,8 @@ def combine_results(rule_result, ai_result, ml_result, language="English"):
         "indicators": indicators,
         "recommendations": rule_result["recommendations"],
         "detection_method": "rule+Gemini based",
+        "rule_based_score": rule_score,
+        "ai_score": None,
         "ai_model": f"{GEMINI_MODEL} (hybrid fallback)",
     }
 
@@ -1769,6 +1805,7 @@ def scan_image():
     )
 
     result = None
+    successful_model = None
     for model_name in CANDIDATE_GEMINI_MODELS:
         try:
             response = gemini_client.models.generate_content(
@@ -1780,12 +1817,13 @@ def scan_image():
             )
             text_resp = (response.text or "").strip()
             if text_resp.startswith("```"):
-                text_resp = re.sub(r"^```(?:json)?\s*", "", text_resp)
+                text_resp = re.sub(r"^```(?:json)?\s*", "", text_resp, flags=re.I)
                 text_resp = re.sub(r"\s*```$", "", text_resp)
             start = text_resp.find("{")
             end = text_resp.rfind("}")
             if start != -1 and end != -1:
                 result = json.loads(text_resp[start:end+1])
+                successful_model = model_name
                 result["ai_model"] = model_name
                 break
         except Exception as exc:
@@ -1795,52 +1833,86 @@ def scan_image():
     if not result:
         result = {
             "extracted_text": "Could not extract text clearly from image.",
-            "risk_score": 35,
-            "risk_level": "Medium",
-            "explanation": "Automated vision analysis encountered an issue. Verify sender independently.",
-            "indicators": ["Image format unparseable"],
-            "recommendations": ["Do not trust unverified payment screenshots or QR requests."]
+            "risk_score": 30,
+            "risk_level": "Low",
+            "explanation": "Automated vision analysis was unable to parse this image format. If this is a payment receipt, verify funds directly in your bank account.",
+            "indicators": ["Image format unparseable via vision engine"],
+            "recommendations": ["Do not trust unverified payment screenshots or QR requests without bank confirmation."]
         }
 
-    result["detection_method"] = "gemini_vision"
-    result["ai_model"] = GEMINI_MODEL
+    # Rule + Gemini Hybrid: Cross-validate transcribed screenshot text with Rule Engine & NLP
+    extracted_txt = (result.get("extracted_text") or "").strip()
+    r_score = 0
+    if extracted_txt and extracted_txt != "Could not extract text clearly from image.":
+        rule_eval = analyze_message(extracted_txt, language=language)
+        nlp_eval = ml_classifier.predict(extracted_txt)
+
+        v_score = int(result.get("risk_score", 0))
+        r_score = int(rule_eval.get("risk_score", 0))
+        n_score = int(nlp_eval.get("ml_score", 0))
+
+        # Threat-dominant cross verification: Rule + Gemini
+        combined_score = max(v_score, r_score, n_score)
+        if combined_score >= 75 and v_score < 75:
+            result["risk_score"] = combined_score
+            result["risk_level"] = get_risk_level(combined_score)
+            for ind in rule_eval.get("indicators", []):
+                if ind not in result.get("indicators", []):
+                    result.setdefault("indicators", []).append(ind)
+        elif v_score <= 20 and r_score <= 15:
+            # Genuine transaction receipt confirmed
+            result["risk_score"] = min(v_score, 15)
+            result["risk_level"] = "Low"
+        elif r_score > 0 and v_score > 0:
+            result["risk_score"] = max(v_score, r_score)
+            result["risk_level"] = get_risk_level(result["risk_score"])
+
+    result["detection_method"] = "rule+Gemini based"
+    result["rule_based_score"] = r_score
+    result["ai_score"] = int(result.get("risk_score", 0)) if successful_model else None
+    result["ai_model"] = successful_model or result.get("ai_model") or GEMINI_MODEL
 
     try:
         norm_risk = result.get("risk_level", "Low")
-        extracted_txt = result.get("extracted_text") or "Screenshot Analysis"
+        final_extracted_txt = result.get("extracted_text") or "Screenshot Analysis"
 
-        # Attach image metadata to indicators for history visualization
+        # Attach lightweight image metadata to indicators for history visualization
         indicators_list = list(result.get("indicators", []))
         image_meta = {
             "type": "image_scan",
             "filename": (data.get("filename") or "screenshot.png"),
         }
-        if len(image_b64) <= 120000:
+        # Prefer client-generated lightweight thumbnail (~3KB) to prevent database bloat
+        client_thumb = data.get("thumbnail")
+        if client_thumb and isinstance(client_thumb, str) and len(client_thumb) <= 40000:
+            image_meta["thumbnail"] = client_thumb
+        elif len(image_b64) <= 30000:
             image_meta["thumbnail"] = f"data:{mime_type};base64,{image_b64}"
+
         indicators_list.insert(0, image_meta)
 
         record = ScanHistory(
-            message=extracted_txt,
+            message=final_extracted_txt,
             risk_score=int(result.get("risk_score", 0)),
             risk_level=norm_risk,
             explanation=result.get("explanation", ""),
             indicators=indicators_list,
             recommendations=result.get("recommendations", []),
-            detection_method="gemini_vision",
-            ai_model=GEMINI_MODEL,
+            detection_method="rule+Gemini based",
+            ai_model=result["ai_model"],
             review_status="pending" if norm_risk in ("High", "Medium") else "not_required",
         )
         db.session.add(record)
 
         case_rec = sync_case_and_result(
             case_type="image_scan",
-            submitted_text=extracted_txt,
+            submitted_text=final_extracted_txt,
             risk_level=norm_risk,
             risk_score=int(result.get("risk_score", 0)),
             classification="malicious_or_scam" if norm_risk == "High" else "suspicious" if norm_risk == "Medium" else "legitimate",
             signals=result.get("indicators", []),
             recommended_actions=result.get("recommendations", []),
-            model_version=f"gemini_vision-{GEMINI_MODEL}",
+            model_version=f"rule+{result['ai_model']}",
         )
 
         db.session.commit()

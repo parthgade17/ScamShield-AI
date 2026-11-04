@@ -58,6 +58,7 @@ export default function ScamScanner() {
   const [scanMode, setScanMode] = useState<'text' | 'image'>('text')
   const [message, setMessage] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [imageThumbnail, setImageThumbnail] = useState<string | null>(null)
   const [imageFileName, setImageFileName] = useState('')
 
   const [scan, setScan] = useState<ScanResponse | null>(null)
@@ -328,9 +329,38 @@ export default function ScamScanner() {
     setImageFileName(file.name)
     const reader = new FileReader()
     reader.onload = () => {
-      setSelectedImage(reader.result as string)
+      const full = reader.result as string
+      setSelectedImage(full)
       setError('')
       setScan(null)
+
+      // Create a lightweight, high-performance thumbnail for the database
+      const img = new Image()
+      img.onload = () => {
+        try {
+          const maxDim = 150
+          let w = img.width
+          let h = img.height
+          if (w > h && w > maxDim) {
+            h = Math.round((h * maxDim) / w)
+            w = maxDim
+          } else if (h > maxDim) {
+            w = Math.round((w * maxDim) / h)
+            h = maxDim
+          }
+          const canvas = document.createElement('canvas')
+          canvas.width = w
+          canvas.height = h
+          const ctx = canvas.getContext('2d')
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, w, h)
+            setImageThumbnail(canvas.toDataURL('image/jpeg', 0.65))
+          }
+        } catch {
+          setImageThumbnail(null)
+        }
+      }
+      img.src = full
     }
     reader.readAsDataURL(file)
   }
@@ -392,6 +422,7 @@ export default function ScamScanner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           image: selectedImage,
+          thumbnail: imageThumbnail,
           filename: imageFileName || 'screenshot.png',
           language,
         }),
@@ -742,10 +773,13 @@ export default function ScamScanner() {
               <div style={{ padding: 16, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
                 <p style={{ margin: '0 0 6px', fontSize: 12, color: 'var(--text-muted)' }}>{t('scanner.detection_method')}</p>
                 <strong style={{ fontSize: 13.5, color: 'var(--primary)', display: 'block' }}>
-                  {scan.detection_method === 'gemini_vision'
-                    ? '✨ Gemini Vision AI'
-                    : '🛡️ Rule + Gemini based'}
+                  🛡️ Rule + Gemini based
                 </strong>
+                {(scan.rule_based_score !== undefined || scan.ai_score !== undefined) && (
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginTop: 4 }}>
+                    Rules: {scan.rule_based_score ?? 0} | Gemini: {scan.ai_score ?? scan.risk_score}
+                  </span>
+                )}
               </div>
             </div>
 

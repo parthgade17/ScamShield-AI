@@ -16,6 +16,7 @@ import {
   dbLogger,
   fetchWithTimeout,
   fetchStatsFromSupabase,
+  getCachedStats,
   type DashboardStats,
 } from '../../api'
 import { useLanguage } from '../../context/LanguageContext'
@@ -77,18 +78,23 @@ function Dashboard({ onNavigate }: DashboardProps) {
       try {
         const supabaseStats = await fetchStatsFromSupabase()
         setStats(supabaseStats)
-        setDataSource('Supabase Direct')
+        setDataSource(supabaseStats.source === 'fallback' ? 'Cached Local' : 'Supabase Direct')
         dbLogger.success('Dashboard', 'Live stats retrieved via Supabase Direct failover:', supabaseStats)
       } catch (supabaseErr) {
-        dbLogger.error(
+        dbLogger.warn(
           'Dashboard',
-          'Both Backend API and Supabase Direct queries failed.',
-          supabaseErr,
-          'Check network tab in DevTools or run window.__scamshield_debug.testSupabase()'
+          'Live database queries temporarily unavailable, checking cached stats:',
+          supabaseErr
         )
-        setErrorMessage(
-          'Unable to reach database. Please check your internet connection or inspect browser console.'
-        )
+        const cached = getCachedStats()
+        if (cached) {
+          setStats(cached)
+          setDataSource('Cached Offline')
+        } else if (showRefreshing || stats.total_scans === 0) {
+          setErrorMessage(
+            'Unable to reach database. Please check your backend server or network connection.'
+          )
+        }
       }
     } finally {
       setLoading(false)

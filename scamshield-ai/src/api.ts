@@ -49,8 +49,8 @@ function resolveApiBaseUrl(): string {
     return ''
   }
 
-  // 4. Local development default
-  return 'http://127.0.0.1:5000'
+  // 4. In development, use relative path ('') so Vite dev server proxy cleanly routes /api -> http://127.0.0.1:5000 without CORS or mixed content issues
+  return ''
 }
 
 export const API_BASE_URL: string = resolveApiBaseUrl()
@@ -150,6 +150,64 @@ export type LinkHistoryItem = {
   created_at: string | null
 }
 
+const STATS_CACHE_KEY = 'scamshield_stats_cache'
+const HISTORY_CACHE_KEY = 'scamshield_history_cache'
+const LINK_HISTORY_CACHE_KEY = 'scamshield_link_history_cache'
+
+export function getCachedStats(): DashboardStats | null {
+  try {
+    const raw = sessionStorage.getItem(STATS_CACHE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {
+    // sessionStorage quota or unavailable
+  }
+  return null
+}
+
+export function setCachedStats(stats: DashboardStats): void {
+  try {
+    sessionStorage.setItem(STATS_CACHE_KEY, JSON.stringify(stats))
+  } catch {
+    // ignore
+  }
+}
+
+export function getCachedHistory(): CaseHistoryItem[] | null {
+  try {
+    const raw = sessionStorage.getItem(HISTORY_CACHE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+export function setCachedHistory(items: CaseHistoryItem[]): void {
+  try {
+    sessionStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(items.slice(0, 30)))
+  } catch {
+    // ignore
+  }
+}
+
+export function getCachedLinkHistory(): LinkHistoryItem[] | null {
+  try {
+    const raw = sessionStorage.getItem(LINK_HISTORY_CACHE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+export function setCachedLinkHistory(items: LinkHistoryItem[]): void {
+  try {
+    sessionStorage.setItem(LINK_HISTORY_CACHE_KEY, JSON.stringify(items.slice(0, 30)))
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Query Supabase PostgREST directly for scan history
  */
@@ -157,63 +215,73 @@ export async function fetchHistoryFromSupabase(searchQuery?: string): Promise<Ca
   dbLogger.info('Supabase Direct', 'Querying scan_history directly via PostgREST...')
   const startTime = Date.now()
 
-  let url = `${SUPABASE_URL}/rest/v1/scan_history?select=*&order=id.desc&limit=50`
+  let url = `${SUPABASE_URL}/rest/v1/scan_history?select=id,message,risk_level,risk_score,created_at,detection_method,review_status,explanation,indicators&order=id.desc&limit=50`
   if (searchQuery && searchQuery.trim()) {
     const clean = searchQuery.trim().replace(/[%_]/g, '')
     url += `&or=(message.ilike.*${encodeURIComponent(clean)}*,risk_level.ilike.*${encodeURIComponent(clean)}*)`
   }
 
-  const res = await fetchWithTimeout(url, { headers: SUPABASE_HEADERS }, 7000)
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Supabase returned HTTP ${res.status}: ${text}`)
-  }
+  try {
+    const res = await fetchWithTimeout(url, { headers: SUPABASE_HEADERS }, 10000)
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(`Supabase returned HTTP ${res.status}: ${text}`)
+    }
 
-  const rows = (await res.json()) as Array<{
-    id: number
-    message?: string
-    risk_level?: string
-    risk_score?: number
-    created_at?: string
-    detection_method?: string
-    review_status?: string
-    explanation?: string
-    indicators?: any[]
-  }>
+    const rows = (await res.json()) as Array<{
+      id: number
+      message?: string
+      risk_level?: string
+      risk_score?: number
+      created_at?: string
+      detection_method?: string
+      review_status?: string
+      explanation?: string
+      indicators?: any[]
+    }>
 
-  const mapped: CaseHistoryItem[] = rows.map((r) => {
-    // Check if thumbnail is stored in indicators
-    let thumb: string | null = null
-    if (Array.isArray(r.indicators)) {
-      for (const item of r.indicators) {
-        if (typeof item === 'object' && item !== null && item.thumbnail) {
-          thumb = item.thumbnail
-          break
+    const mapped: CaseHistoryItem[] = rows.map((r) => {
+      let thumb: string | null = null
+      if (Array.isArray(r.indicators)) {
+        for (const item of r.indicators) {
+          if (typeof item === 'object' && item !== null && item.thumbnail) {
+            thumb = item.thumbnail
+            break
+          }
         }
       }
-    }
 
-    return {
-      id: r.id,
-      message: r.message || 'Scanned Content',
-      risk_level: r.risk_level || 'Low',
-      risk_score: typeof r.risk_score === 'number' ? r.risk_score : 0,
-      created_at: r.created_at || null,
-      detection_method: r.detection_method || 'rule+Gemini based',
-      review_status: r.review_status || 'pending',
-      explanation: r.explanation || '',
-      indicators: r.indicators || [],
-      thumbnail: thumb,
-    }
-  })
+      return {
+        id: r.id,
+        message: r.message || 'Scanned Content',
+        risk_level: r.risk_level || 'Low',
+        risk_score: typeof r.risk_score === 'number' ? r.risk_score : 0,
+        created_at: r.created_at || null,
+        detection_method: r.detection_method || 'rule+Gemini based',
+        review_status: r.review_status || 'pending',
+        explanation: r.explanation || '',
+        indicators: r.indicators || [],
+        thumbnail: thumb,
+      }
+    })
 
-  const latency = Date.now() - startTime
-  dbLogger.success(
-    'Supabase Direct',
-    `Retrieved ${mapped.length} scan records in ${latency}ms from Supabase`,
-    mapped
-  )
-  return mapped
+    setCachedHistory(mapped)
+
+    const latency = Date.now() - startTime
+    dbLogger.success(
+      'Supabase Direct',
+      `Retrieved ${mapped.length} scan records in ${latency}ms from Supabase`,
+      mapped
+    )
+    return mapped
+  } catch (err) {
+    const cached = getCachedHistory()
+    if (cached && cached.length > 0) {
+      dbLogger.warn('Supabase Direct', 'Network query failed, returning cached history', err)
+      return cached
+    }
+    throw err
+  }
 }
 
 /**
@@ -223,49 +291,60 @@ export async function fetchLinkHistoryFromSupabase(searchQuery?: string): Promis
   dbLogger.info('Supabase Direct', 'Querying link_checks directly via PostgREST...')
   const startTime = Date.now()
 
-  let url = `${SUPABASE_URL}/rest/v1/link_checks?select=*&order=id.desc&limit=50`
+  let url = `${SUPABASE_URL}/rest/v1/link_checks?select=id,url,domain,risk_score,risk_level,classification,warnings,signals,created_at&order=id.desc&limit=50`
   if (searchQuery && searchQuery.trim()) {
     const clean = searchQuery.trim().replace(/[%_]/g, '')
     url += `&or=(url.ilike.*${encodeURIComponent(clean)}*,domain.ilike.*${encodeURIComponent(clean)}*,risk_level.ilike.*${encodeURIComponent(clean)}*)`
   }
 
-  const res = await fetchWithTimeout(url, { headers: SUPABASE_HEADERS }, 7000)
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Supabase link_checks returned HTTP ${res.status}: ${text}`)
+  try {
+    const res = await fetchWithTimeout(url, { headers: SUPABASE_HEADERS }, 9000)
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(`Supabase link_checks returned HTTP ${res.status}: ${text}`)
+    }
+
+    const rows = (await res.json()) as Array<{
+      id: number
+      url: string
+      domain?: string
+      risk_score?: number
+      risk_level?: string
+      classification?: string
+      warnings?: string[]
+      signals?: string[]
+      created_at?: string
+    }>
+
+    const mapped: LinkHistoryItem[] = rows.map((r) => ({
+      id: r.id,
+      url: r.url,
+      domain: r.domain || null,
+      risk_score: typeof r.risk_score === 'number' ? r.risk_score : 0,
+      risk_level: r.risk_level || 'Low',
+      classification: r.classification || 'legitimate',
+      warnings: Array.isArray(r.warnings) ? r.warnings : [],
+      signals: Array.isArray(r.signals) ? r.signals : [],
+      created_at: r.created_at || null,
+    }))
+
+    setCachedLinkHistory(mapped)
+
+    const latency = Date.now() - startTime
+    dbLogger.success(
+      'Supabase Direct',
+      `Retrieved ${mapped.length} link check records in ${latency}ms from Supabase`,
+      mapped
+    )
+    return mapped
+  } catch (err) {
+    const cached = getCachedLinkHistory()
+    if (cached && cached.length > 0) {
+      dbLogger.warn('Supabase Direct', 'Link check query failed, returning cached links', err)
+      return cached
+    }
+    throw err
   }
-
-  const rows = (await res.json()) as Array<{
-    id: number
-    url: string
-    domain?: string
-    risk_score?: number
-    risk_level?: string
-    classification?: string
-    warnings?: string[]
-    signals?: string[]
-    created_at?: string
-  }>
-
-  const mapped: LinkHistoryItem[] = rows.map((r) => ({
-    id: r.id,
-    url: r.url,
-    domain: r.domain || null,
-    risk_score: typeof r.risk_score === 'number' ? r.risk_score : 0,
-    risk_level: r.risk_level || 'Low',
-    classification: r.classification || 'legitimate',
-    warnings: Array.isArray(r.warnings) ? r.warnings : [],
-    signals: Array.isArray(r.signals) ? r.signals : [],
-    created_at: r.created_at || null,
-  }))
-
-  const latency = Date.now() - startTime
-  dbLogger.success(
-    'Supabase Direct',
-    `Retrieved ${mapped.length} link check records in ${latency}ms from Supabase`,
-    mapped
-  )
-  return mapped
 }
 
 /**
@@ -275,70 +354,81 @@ export async function fetchStatsFromSupabase(): Promise<DashboardStats> {
   dbLogger.info('Supabase Direct', 'Calculating dashboard stats directly from Supabase...')
   const startTime = Date.now()
 
-  // Parallel requests for optimal speed
-  const [historyRes, linksRes, reviewsRes] = await Promise.all([
-    fetchWithTimeout(
-      `${SUPABASE_URL}/rest/v1/scan_history?select=id,risk_level,review_status`,
-      { headers: SUPABASE_HEADERS },
-      6000
-    ),
-    fetchWithTimeout(
-      `${SUPABASE_URL}/rest/v1/link_checks?select=id`,
-      { headers: SUPABASE_HEADERS },
-      6000
-    ).catch(() => null),
-    fetchWithTimeout(
-      `${SUPABASE_URL}/rest/v1/human_review?select=id`,
-      { headers: SUPABASE_HEADERS },
-      6000
-    ).catch(() => null),
-  ])
+  try {
+    // Parallel requests with independent failure tolerance
+    const [historyRes, linksRes, reviewsRes] = await Promise.all([
+      fetchWithTimeout(
+        `${SUPABASE_URL}/rest/v1/scan_history?select=id,risk_level,review_status`,
+        { headers: SUPABASE_HEADERS },
+        8000
+      ),
+      fetchWithTimeout(
+        `${SUPABASE_URL}/rest/v1/link_checks?select=id`,
+        { headers: SUPABASE_HEADERS },
+        8000
+      ).catch(() => null),
+      fetchWithTimeout(
+        `${SUPABASE_URL}/rest/v1/human_review?select=id`,
+        { headers: SUPABASE_HEADERS },
+        8000
+      ).catch(() => null),
+    ])
 
-  if (!historyRes.ok) {
-    throw new Error(`Supabase scan_history returned HTTP ${historyRes.status}`)
+    if (!historyRes.ok) {
+      throw new Error(`Supabase scan_history returned HTTP ${historyRes.status}`)
+    }
+
+    const scans = (await historyRes.json()) as Array<{
+      id: number
+      risk_level?: string
+      review_status?: string
+    }>
+
+    let linkCount = 0
+    if (linksRes && linksRes.ok) {
+      const linkRows = (await linksRes.json()) as Array<{ id: number }>
+      linkCount = linkRows.length
+    }
+
+    let reviewCount = 0
+    if (reviewsRes && reviewsRes.ok) {
+      const revRows = (await reviewsRes.json()) as Array<{ id: number }>
+      reviewCount = revRows.length
+    }
+
+    const highRisk = scans.filter(
+      (s) => (s.risk_level || '').toLowerCase() === 'high'
+    ).length
+    const pending = scans.filter(
+      (s) => (s.review_status || '').toLowerCase() === 'pending'
+    ).length
+
+    const stats: DashboardStats = {
+      total_scans: scans.length + linkCount,
+      high_risk: highRisk,
+      pending_reviews: pending,
+      cases_reviewed: reviewCount > 0 ? reviewCount : Math.max(0, scans.length - pending),
+      total_links: linkCount,
+      source: 'supabase_direct',
+    }
+
+    setCachedStats(stats)
+
+    const latency = Date.now() - startTime
+    dbLogger.success(
+      'Supabase Direct',
+      `Computed dashboard stats in ${latency}ms from Supabase`,
+      stats
+    )
+    return stats
+  } catch (err) {
+    const cached = getCachedStats()
+    if (cached) {
+      dbLogger.warn('Supabase Direct', 'Stats query failed, falling back to cached stats:', cached)
+      return { ...cached, source: 'fallback' }
+    }
+    throw err
   }
-
-  const scans = (await historyRes.json()) as Array<{
-    id: number
-    risk_level?: string
-    review_status?: string
-  }>
-
-  let linkCount = 0
-  if (linksRes && linksRes.ok) {
-    const linkRows = (await linksRes.json()) as Array<{ id: number }>
-    linkCount = linkRows.length
-  }
-
-  let reviewCount = 0
-  if (reviewsRes && reviewsRes.ok) {
-    const revRows = (await reviewsRes.json()) as Array<{ id: number }>
-    reviewCount = revRows.length
-  }
-
-  const highRisk = scans.filter(
-    (s) => (s.risk_level || '').toLowerCase() === 'high'
-  ).length
-  const pending = scans.filter(
-    (s) => (s.review_status || '').toLowerCase() === 'pending'
-  ).length
-
-  const stats: DashboardStats = {
-    total_scans: scans.length + linkCount,
-    high_risk: highRisk,
-    pending_reviews: pending,
-    cases_reviewed: reviewCount > 0 ? reviewCount : Math.max(0, scans.length - pending),
-    total_links: linkCount,
-    source: 'supabase_direct',
-  }
-
-  const latency = Date.now() - startTime
-  dbLogger.success(
-    'Supabase Direct',
-    `Computed dashboard stats in ${latency}ms from Supabase`,
-    stats
-  )
-  return stats
 }
 
 /**

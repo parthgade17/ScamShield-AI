@@ -25,6 +25,8 @@ import {
   fetchWithTimeout,
   fetchHistoryFromSupabase,
   fetchLinkHistoryFromSupabase,
+  getCachedHistory,
+  getCachedLinkHistory,
   type CaseHistoryItem,
   type LinkHistoryItem,
 } from '../../api'
@@ -141,8 +143,8 @@ export default function CaseHistory() {
     if (!usedBackend) {
       try {
         const [supaMsgs, supaLinks] = await Promise.all([
-          fetchHistoryFromSupabase(search.trim()).catch(() => []),
-          fetchLinkHistoryFromSupabase(search.trim()).catch(() => []),
+          fetchHistoryFromSupabase(search.trim()).catch(() => getCachedHistory() || []),
+          fetchLinkHistoryFromSupabase(search.trim()).catch(() => getCachedLinkHistory() || []),
         ])
 
         setMessages(supaMsgs)
@@ -153,14 +155,22 @@ export default function CaseHistory() {
           `Loaded ${supaMsgs.length} scans and ${supaLinks.length} links from Supabase Direct.`
         )
       } catch (supabaseErr) {
-        dbLogger.error(
+        dbLogger.warn(
           'CaseHistory',
-          'Failed to retrieve history from both Backend and Supabase.',
+          'Failed to retrieve live history from both Backend and Supabase, checking local cache.',
           supabaseErr
         )
-        setErrorMessage(
-          'Could not load case history from database. Open DevTools (F12) to inspect logs or click Retry.'
-        )
+        const cachedM = getCachedHistory() || []
+        const cachedL = getCachedLinkHistory() || []
+        if (cachedM.length > 0 || cachedL.length > 0) {
+          setMessages(cachedM)
+          setLinks(cachedL)
+          setDataSource('Cached Local')
+        } else {
+          setErrorMessage(
+            'Could not load case history from database. Open DevTools (F12) to inspect logs or click Retry.'
+          )
+        }
       }
     }
 
