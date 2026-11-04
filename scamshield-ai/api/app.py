@@ -1,8 +1,11 @@
 
 import os
 import re
+import sys
+import time
 import json
 import uuid
+import logging
 import urllib.request
 from pathlib import Path
 from datetime import datetime, timezone
@@ -14,6 +17,15 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from google import genai
+
+# Configure structured deployment logger
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] [DEPLOYMENT] %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+logger = logging.getLogger("scamshield")
+logger.setLevel(logging.INFO)
 
 
 # =========================================================
@@ -127,6 +139,43 @@ CORS(
 gemini_client = genai.Client(api_key=API_KEY) if API_KEY else None
 
 DATABASE_STATUS = "not_checked"
+
+
+# =========================================================
+# 1B. REQUEST LIFECYCLE & DEPLOYMENT RUNTIME LOGGING
+# =========================================================
+
+@app.before_request
+def deployment_before_request():
+    request.start_time = time.time()
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or request.headers.get("x-real-ip")
+        or request.remote_addr
+        or "unknown"
+    )
+    user_agent = request.headers.get("user-agent", "unknown")[:60]
+    logger.info(f"==> [REQUEST] {request.method} {request.path} | Client: {client_ip} | UA: {user_agent}")
+
+
+@app.after_request
+def deployment_after_request(response):
+    start = getattr(request, "start_time", None)
+    duration_str = f"{(time.time() - start) * 1000:.1f}ms" if start else "unknown"
+    status_code = response.status_code
+    level = logging.INFO if status_code < 400 else logging.WARNING if status_code < 500 else logging.ERROR
+    logger.log(level, f"<== [RESPONSE] {request.method} {request.path} -> Status {status_code} ({duration_str})")
+    return response
+
+
+@app.errorhandler(Exception)
+def deployment_unhandled_exception(exc):
+    logger.error(f"[EXCEPTION] Unhandled error on {request.method} {request.path}: {type(exc).__name__}: {exc}", exc_info=True)
+    return jsonify({
+        "error": "Internal server error",
+        "type": type(exc).__name__,
+        "message": str(exc),
+    }), 500
 
 
 # =========================================================
@@ -551,9 +600,11 @@ def save_scan_to_supabase_rest(
             if resp.status in (200, 201):
                 body = json.loads(resp.read().decode("utf-8"))
                 if body and isinstance(body, list) and len(body) > 0:
+                    saved_id = body[0].get("id")
+                    logger.info(f"[DEPLOYMENT-SUPABASE] Scan record saved to Supabase PostgREST: ID={saved_id}")
                     return body[0]
     except Exception as exc:
-        print(f"[SUPABASE_REST] Failover save warning: {type(exc).__name__}: {exc}")
+        logger.warning(f"[DEPLOYMENT-SUPABASE] PostgREST scan save warning: {type(exc).__name__}: {exc}")
     return None
 
 
@@ -596,9 +647,11 @@ def save_link_check_to_supabase_rest(
             if resp.status in (200, 201):
                 body = json.loads(resp.read().decode("utf-8"))
                 if body and isinstance(body, list) and len(body) > 0:
+                    saved_id = body[0].get("id")
+                    logger.info(f"[DEPLOYMENT-SUPABASE] Link check saved to Supabase PostgREST: ID={saved_id}")
                     return body[0]
     except Exception as exc:
-        print(f"[SUPABASE_REST] Link failover save warning: {type(exc).__name__}: {exc}")
+        logger.warning(f"[DEPLOYMENT-SUPABASE] Link check PostgREST save warning: {type(exc).__name__}: {exc}")
     return None
 
 
@@ -726,6 +779,7 @@ def initialize_database():
     global DATABASE_STATUS
 
     with app.app_context():
+        logger.info("[DEPLOYMENT-DB] Checking database connectivity and schema...")
         try:
             db.create_all()
 
@@ -746,8 +800,8 @@ def initialize_database():
             db.session.commit()
 
             DATABASE_STATUS = "connected"
-            print("[DATABASE] Connection successful.")
-            print("[DATABASE] Supabase tables case, scan_result, human_review, notification, scan_history ready.")
+            logger.info("[DEPLOYMENT-DB] Direct SQLAlchemy PostgreSQL connection verified (status=connected)")
+            logger.info("[DEPLOYMENT-DB] Supabase tables case, scan_result, human_review, notification, scan_history ready.")
 
         except Exception as exc:
             try:
@@ -756,8 +810,8 @@ def initialize_database():
                 pass
 
             DATABASE_STATUS = "connected_via_supabase_api"
-            print("[DATABASE] Direct SQLAlchemy connection unavailable (network IPv6 timeout or authentication required).")
-            print("[DATABASE] Active failover: Real-time Supabase PostgREST sync engine enabled for 100% data persistence.")
+            logger.warning(f"[DEPLOYMENT-DB] Direct SQLAlchemy connection unavailable ({type(exc).__name__}: {exc})")
+            logger.info("[DEPLOYMENT-DB] Active Failover: Real-time Supabase PostgREST sync engine enabled for 100% data persistence.")
 
         finally:
             db.session.remove()
@@ -1837,6 +1891,7 @@ def health():
         except Exception:
             DATABASE_STATUS = "connected_via_supabase_api" if (SUPABASE_URL and SUPABASE_KEY) else "unavailable"
 
+    logger.info(f"[DEPLOYMENT-HEALTH] Health check: db_status={DATABASE_STATUS}, ai_ready={bool(gemini_client)}")
     return jsonify({
         "service": "ScamShield Detection API",
         "status": "ok",
@@ -1881,10 +1936,19 @@ def scan_message():
             "error": f"Message cannot exceed {MAX_MESSAGE_LENGTH} characters."
         }), 400
 
+    logger.info(f"[DEPLOYMENT-SCAN] Incoming text scan: chars={len(message)}, lang={language}, preview='{message[:60]}...'")
+
     rule_result = analyze_message(message, language=language)
     ml_result = ml_classifier.predict(message)
     ai_result = analyze_with_gemini(message, language=language)
     result = combine_results(rule_result, ai_result, ml_result, language=language)
+
+    logger.info(
+        f"[DEPLOYMENT-SCAN] Pipeline scores: Rule={rule_result.get('risk_score')}, "
+        f"ML={ml_result.get('risk_score') if ml_result else 'N/A'}, "
+        f"Gemini={result.get('ai_score')} -> CombinedRisk={result['risk_level']} "
+        f"({result['risk_score']}/100, Method='{result.get('detection_method')}')"
+    )
 
     result["ai_model"] = GEMINI_MODEL if ai_result else None
     result["saved"] = False
@@ -1967,8 +2031,9 @@ def scan_message():
         if rest_record and "id" in rest_record:
             result["saved"] = True
             result["scan_id"] = rest_record["id"]
-            print(f"[SUPABASE_REST] Successfully saved text scan #{rest_record['id']} to Supabase PostgreSQL!")
+            logger.info(f"[DEPLOYMENT-SCAN] Saved text scan #{rest_record['id']} via Supabase PostgREST")
 
+    logger.info(f"[DEPLOYMENT-SCAN] Scan complete: ID={result.get('scan_id')}, Risk={result.get('risk_level')} ({result.get('risk_score')}/100), Saved={result.get('saved')}")
     return jsonify(result), 200
 
 
@@ -2003,6 +2068,8 @@ def scan_image():
         image_bytes = base64.b64decode(image_b64)
     except Exception:
         return jsonify({"error": "Invalid image format."}), 400
+
+    logger.info(f"[DEPLOYMENT-IMAGE-SCAN] Received image: mime={mime_type}, bytes={len(image_bytes)}, lang={language}")
 
     if not gemini_client:
         return jsonify({
@@ -2252,11 +2319,12 @@ def scan_image():
         if rest_record and "id" in rest_record:
             result["scan_id"] = rest_record["id"]
             result["saved"] = True
-            print(f"[SUPABASE_REST] Successfully saved image scan #{rest_record['id']} to Supabase PostgreSQL!")
+            logger.info(f"[DEPLOYMENT-IMAGE-SCAN] Saved image scan #{rest_record['id']} via Supabase PostgREST")
         else:
             result["scan_id"] = None
             result["saved"] = False
 
+    logger.info(f"[DEPLOYMENT-IMAGE-SCAN] Completed image analysis: RiskLevel={result.get('risk_level')}, RiskScore={result.get('risk_score')}/100, AIModel={result.get('ai_model')}, SavedID={result.get('scan_id')}")
     return jsonify(result), 200
 
 
@@ -2375,9 +2443,11 @@ def delete_scan(scan_id):
 @app.get("/api/dashboard/stats")
 @app.get("/dashboard/stats")
 def dashboard_stats():
+    logger.info(f"[DEPLOYMENT-STATS] Calculating dashboard metrics (db_status={DATABASE_STATUS})")
     if DATABASE_STATUS != "connected":
         stats = get_stats_from_supabase_rest()
         if stats:
+            logger.info(f"[DEPLOYMENT-STATS] Fetched stats via Supabase PostgREST: Total={stats.get('total_scans')}, HighRisk={stats.get('high_risk')}")
             return jsonify(stats), 200
 
     try:
@@ -2658,6 +2728,7 @@ def check_link_endpoint():
     if not url:
         return jsonify({"error": "Please provide a website link to check."}), 400
 
+    logger.info(f"[DEPLOYMENT-LINK-CHECK] Analyzing URL: {url[:100]}")
     analysis = analyze_url_heuristics(url)
 
     if DATABASE_STATUS == "connected":
@@ -2729,11 +2800,12 @@ def check_link_endpoint():
         if rest_record and "id" in rest_record:
             analysis["id"] = rest_record["id"]
             analysis["saved"] = True
-            print(f"[SUPABASE_REST] Successfully saved link check #{rest_record['id']} to Supabase PostgreSQL!")
+            logger.info(f"[DEPLOYMENT-LINK-CHECK] Saved link check #{rest_record['id']} via Supabase PostgREST")
         else:
             analysis["id"] = None
             analysis["saved"] = False
 
+    logger.info(f"[DEPLOYMENT-LINK-CHECK] Finished analysis: Domain={analysis.get('domain')}, Risk={analysis.get('risk_level')} ({analysis.get('risk_score')}/100), Classification={analysis.get('classification')}, ID={analysis.get('id')}")
     return jsonify(analysis), 200
 
 

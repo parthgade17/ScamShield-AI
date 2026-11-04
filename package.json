@@ -8,7 +8,7 @@
   "scripts": {
     "postinstall": "npm install --prefix scamshield-ai",
     "dev": "npm run dev --prefix scamshield-ai",
-    "build": "npm run build --prefix scamshield-ai",
+    "build": "node scripts/log-build.cjs && npm run build --prefix scamshield-ai",
     "lint": "npm run lint --prefix scamshield-ai",
     "preview": "npm run preview --prefix scamshield-ai"
   },
