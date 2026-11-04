@@ -7,9 +7,9 @@ export const SUPABASE_URL: string = (
   import.meta.env.VITE_SUPABASE_URL || 'https://braqdveiscllhubnmaqa.supabase.co'
 ).replace(/\/+$/, '')
 
+const rawAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim().replace(/^["']|["']$/g, '')
 export const SUPABASE_ANON_KEY: string =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  'sb_publishable_smnRe-WzTPbS4l2-1CxYpQ_ZrAMn29u'
+  rawAnonKey || 'sb_publishable_smnRe-WzTPbS4l2-1CxYpQ_ZrAMn29u'
 
 export const SUPABASE_HEADERS: Record<string, string> = {
   apikey: SUPABASE_ANON_KEY,
