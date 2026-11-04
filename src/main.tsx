@@ -1,19 +1,13 @@
-
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App'
 import './index.css'
+import App from './App'
+import { LanguageProvider } from './context/LanguageContext'
 
-const rootElement = document.getElementById('root')
-
-if (!rootElement) {
-  throw new Error(
-    'Root element not found. Check that index.html contains <div id="root"></div>.',
-  )
-}
-
-createRoot(rootElement).render(
+createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <LanguageProvider>
+      <App />
+    </LanguageProvider>
   </StrictMode>,
-)
+)

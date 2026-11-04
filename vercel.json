@@ -5,6 +5,11 @@
   "buildCommand": "npm run build --prefix scamshield-ai",
   "outputDirectory": "scamshield-ai/dist",
   "framework": "vite",
+  "functions": {
+    "api/**/*.py": {
+      "includeFiles": "api/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",

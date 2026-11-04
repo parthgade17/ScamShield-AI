@@ -4,90 +4,84 @@ import {
   ShieldCheck,
   LayoutDashboard,
   ScanSearch,
+  Link,
+  ClipboardCheck,
   History,
   Settings as SettingsIcon,
+  Bell,
   Menu,
   X,
+  ChevronRight,
+  LogOut,
   Sun,
   Moon,
+  Globe,
 } from 'lucide-react'
 
 import Dashboard from './components/pages/Dashboard'
-import Scanner from './components/pages/Scanner'
-import HistoryPage from './components/pages/History'
+import ScamScanner from './components/pages/ScamScanner'
+import LinkChecker from './components/pages/LinkChecker'
+import HumanReview from './components/pages/HumanReview'
+import CaseHistory from './components/pages/CaseHistory'
 import Settings from './components/pages/Settings'
+import { useLanguage, AVAILABLE_LANGUAGES, type Language } from './context/LanguageContext'
 
 import './App.css'
 
-type Page = 'dashboard' | 'scanner' | 'history' | 'settings'
-
-const navigation = [
-  {
-    id: 'dashboard' as Page,
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    id: 'scanner' as Page,
-    label: 'Scam Scanner',
-    icon: ScanSearch,
-  },
-  {
-    id: 'history' as Page,
-    label: 'Scan History',
-    icon: History,
-  },
-  {
-    id: 'settings' as Page,
-    label: 'Settings',
-    icon: SettingsIcon,
-  },
+const navItemsConfig = [
+  { id: 'Dashboard', key: 'nav.dashboard', icon: LayoutDashboard },
+  { id: 'Scam Scanner', key: 'nav.scam_scanner', icon: ScanSearch },
+  { id: 'Link Checker', key: 'nav.link_checker', icon: Link },
+  { id: 'Human Review', key: 'nav.human_review', icon: ClipboardCheck },
+  { id: 'Case History', key: 'nav.case_history', icon: History },
+  { id: 'Settings', key: 'nav.settings', icon: SettingsIcon },
 ]
 
 function App() {
-  const [activePage, setActivePage] = useState<Page>('dashboard')
+  const { language, setLanguage, t } = useLanguage()
+  const [activePage, setActivePage] = useState('Dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // Read the saved theme when the app starts.
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('scamshield-theme') === 'dark'
-    } catch {
-      return false
-    }
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('scamshield-theme') === 'dark'
   })
 
-  // Apply the theme and save it whenever darkMode changes.
   useEffect(() => {
-    const theme = darkMode ? 'dark' : 'light'
+    localStorage.setItem(
+      'scamshield-theme',
+      darkMode ? 'dark' : 'light',
+    )
 
-    document.documentElement.setAttribute('data-theme', theme)
-    document.documentElement.style.colorScheme = theme
+    document.documentElement.setAttribute(
+      'data-theme',
+      darkMode ? 'dark' : 'light',
+    )
 
-    try {
-      localStorage.setItem('scamshield-theme', theme)
-    } catch (error) {
-      console.error('[ScamShield] Unable to save theme:', error)
-    }
+    document.documentElement.style.colorScheme = darkMode
+      ? 'dark'
+      : 'light'
   }, [darkMode])
 
-  function navigateTo(page: Page) {
+  function navigateTo(page: string) {
     setActivePage(page)
     setSidebarOpen(false)
   }
 
   function renderPage() {
     switch (activePage) {
-      case 'dashboard':
-        return <Dashboard />
+      case 'Scam Scanner':
+        return <ScamScanner />
 
-      case 'scanner':
-        return <Scanner />
+      case 'Link Checker':
+        return <LinkChecker />
 
-      case 'history':
-        return <HistoryPage />
+      case 'Human Review':
+        return <HumanReview />
 
-      case 'settings':
+      case 'Case History':
+        return <CaseHistory />
+
+      case 'Settings':
         return (
           <Settings
             darkMode={darkMode}
@@ -96,133 +90,162 @@ function App() {
         )
 
       default:
-        return <Dashboard />
+        return <Dashboard onNavigate={navigateTo} />
     }
   }
 
   return (
-    <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'}`}>
+    <div className={`app-layout ${darkMode ? 'dark-mode' : 'light-mode'}`}>
       {sidebarOpen && (
         <button
-          type="button"
           className="sidebar-overlay"
-          aria-label="Close navigation menu"
+          aria-label="Close navigation"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
-        <div className="sidebar-header">
-          <div className="brand">
-            <div className="brand-icon">
-              <ShieldCheck size={28} />
-            </div>
+        <div className="brand">
+          <div className="brand-icon">
+            <ShieldCheck size={27} />
+          </div>
 
-            <div className="brand-text">
-              <h2>ScamShield</h2>
-              <span>AI Protection</span>
-            </div>
+          <div className="brand-text">
+            <h2>
+              ScamShield<span> AI</span>
+            </h2>
+            <p>DIGITAL SAFETY PLATFORM</p>
           </div>
 
           <button
-            type="button"
-            className="sidebar-close"
+            className="mobile-close"
             aria-label="Close sidebar"
             onClick={() => setSidebarOpen(false)}
           >
-            <X size={22} />
+            <X size={21} />
           </button>
         </div>
 
-        <nav className="sidebar-nav" aria-label="Main navigation">
-          <p className="nav-label">MENU</p>
+        <div className="sidebar-label">{t('nav.main_menu')}</div>
 
-          {navigation.map((item) => {
+        <nav className="sidebar-nav">
+          {navItemsConfig.map((item) => {
             const Icon = item.icon
-            const isActive = activePage === item.id
+            const active = activePage === item.id
 
             return (
               <button
                 key={item.id}
-                type="button"
-                className={`nav-item ${isActive ? 'active' : ''}`}
+                className={`nav-item ${active ? 'nav-active' : ''}`}
                 onClick={() => navigateTo(item.id)}
-                aria-current={isActive ? 'page' : undefined}
               >
                 <Icon size={20} />
-                <span>{item.label}</span>
+                <span>{t(item.key)}</span>
+                {active && <ChevronRight size={17} />}
               </button>
             )
           })}
         </nav>
 
-        <div className="sidebar-bottom">
-          <div className="protection-status">
-            <span className="status-dot" />
-            <div>
-              <strong>Protection Active</strong>
-              <p>Scam detection ready</p>
-            </div>
+        <div className="sidebar-spacer" />
+
+        <div className="sidebar-safety">
+          <ShieldCheck size={25} />
+          <h3>{t('nav.stay_protected')}</h3>
+          <p>{t('nav.stay_protected_desc')}</p>
+        </div>
+
+        <div className="sidebar-footer">
+          <div className="user-avatar">S</div>
+
+          <div className="user-info">
+            <h4>ScamShield User</h4>
+            <p>{t('nav.standard_account')}</p>
           </div>
 
-          <div className="sidebar-footer">
-            <ShieldCheck size={16} />
-            <span>ScamShield AI</span>
-          </div>
+          <LogOut size={18} />
         </div>
       </aside>
 
-      <div className="main-wrapper">
+      <main className="main-area">
         <header className="topbar">
           <div className="topbar-left">
             <button
-              type="button"
-              className="menu-toggle"
-              aria-label="Open navigation menu"
+              className="mobile-menu"
+              aria-label="Open navigation"
               onClick={() => setSidebarOpen(true)}
             >
-              <Menu size={22} />
+              <Menu size={23} />
             </button>
 
-            <div className="breadcrumb">
-              <span>ScamShield</span>
-              <span className="breadcrumb-separator">/</span>
-              <strong>
-                {navigation.find((item) => item.id === activePage)?.label}
-              </strong>
+            <div>
+              <p className="breadcrumb">Workspace / {t(`nav.${activePage.toLowerCase().replace(' ', '_')}`)}</p>
+              <h2>{t(`nav.${activePage.toLowerCase().replace(' ', '_')}`)}</h2>
             </div>
           </div>
 
           <div className="topbar-right">
+            {/* Multilingual Selector Pill */}
+            <div className="lang-selector-pill">
+              <Globe size={15} />
+              <select
+                aria-label="Choose Language"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+              >
+                {AVAILABLE_LANGUAGES.map((lang) => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="system-status">
+              <span className="status-dot" />
+              {t('nav.demo_mode')}
+            </div>
+
             <button
-              type="button"
-              className="theme-toggle"
-              aria-label={
-                darkMode ? 'Switch to light mode' : 'Switch to dark mode'
+              className="notification-button"
+              aria-label="Notifications"
+              title="Demo notifications"
+              onClick={() =>
+                window.alert(
+                  'ScamShield AI Live Protection Active.',
+                )
               }
-              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              onClick={() => setDarkMode((previous) => !previous)}
             >
-              {darkMode ? <Sun size={19} /> : <Moon size={19} />}
-              <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+              <Bell size={21} />
+              <span />
             </button>
 
-            <div className="user-avatar" title="ScamShield User">
-              SU
-            </div>
+            <button
+              className="notification-button"
+              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              onClick={() => setDarkMode((current) => !current)}
+            >
+              {darkMode ? <Sun size={21} /> : <Moon size={21} />}
+            </button>
+
+            <button
+              className="topbar-avatar"
+              aria-label="Open settings"
+              onClick={() => navigateTo('Settings')}
+            >
+              S
+            </button>
           </div>
         </header>
 
-        <main className="main-content" key={activePage}>
-          {renderPage()}
-        </main>
+        <div className="page-content">{renderPage()}</div>
 
         <footer className="app-footer">
-          <p>
-            © {new Date().getFullYear()} ScamShield AI. Stay safe online.
-          </p>
+          <p>{t('footer.copyright')}</p>
+          <p>{t('footer.tagline')}</p>
         </footer>
-      </div>
+      </main>
     </div>
   )
 }

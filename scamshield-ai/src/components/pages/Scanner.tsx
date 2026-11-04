@@ -1,9 +1,8 @@
 
 import { useState } from "react";
+import { API_BASE_URL } from "../../api";
 
-const API_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, "") ||
-  "http://127.0.0.1:5000";
+const API_URL = API_BASE_URL;
 
 interface Indicator {
   name: string;
@@ -89,7 +88,7 @@ export default function Scanner() {
       const reason = err instanceof Error ? err.message : "Unknown error";
 
       setError(
-        `Unable to scan the message. ${reason}. Check that the Flask backend is running at ${API_URL} and that CORS is configured correctly.`
+        `Unable to scan the message. ${reason}. Please check your connection or try again.`
       );
     } finally {
       setLoading(false);

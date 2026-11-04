@@ -16,7 +16,7 @@ import {
   ThumbsDown,
   Upload,
 } from 'lucide-react'
-import { API_BASE_URL, dbLogger } from '../../api'
+import { API_BASE_URL, dbLogger, clientSideScanFallback } from '../../api'
 import { useLanguage } from '../../context/LanguageContext'
 
 type Indicator = {
@@ -395,8 +395,15 @@ export default function ScamScanner() {
       dbLogger.success('ScamScanner', 'Scan analysis completed and saved to Supabase:', data)
       setScan(data as ScanResponse)
     } catch (err) {
-      dbLogger.error('ScamScanner', 'Text scan failed:', err)
-      setError(err instanceof Error ? err.message : 'Scan failed.')
+      dbLogger.warn('ScamScanner', 'Backend scan call failed, switching to client-side rule failover with direct Supabase save:', err)
+      try {
+        const fallbackData = await clientSideScanFallback(message.trim(), language)
+        dbLogger.success('ScamScanner', 'Client-side fallback scan completed and saved to Supabase:', fallbackData)
+        setScan(fallbackData as ScanResponse)
+      } catch (fallbackErr) {
+        dbLogger.error('ScamScanner', 'All scan methods failed:', fallbackErr)
+        setError(err instanceof Error ? err.message : 'Scan failed.')
+      }
     } finally {
       setLoading(false)
     }

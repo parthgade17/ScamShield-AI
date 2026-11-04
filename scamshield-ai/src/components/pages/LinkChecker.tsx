@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, AlertTriangle, ShieldCheck, Loader2 } from 'lucide-react'
-import { API_BASE_URL, dbLogger } from '../../api'
+import { API_BASE_URL, dbLogger, saveLinkCheckToSupabaseDirect } from '../../api'
 import { useLanguage } from '../../context/LanguageContext'
 
 function LinkChecker() {
@@ -74,7 +74,18 @@ function LinkChecker() {
         if (/^\d{1,3}(\.\d{1,3}){3}$/.test(parsedUrl.hostname)) detected.push('The link uses an IP address.')
         if (parsedUrl.hostname.includes('xn--')) detected.push('The domain contains encoded characters.')
         setWarnings(detected)
+        const calculatedScore = detected.length >= 2 ? 85 : detected.length === 1 ? 55 : 15
+        const calculatedLevel = calculatedScore >= 75 ? 'High' : calculatedScore >= 40 ? 'Medium' : 'Low'
+        setRiskScore(calculatedScore)
+        setRiskLevel(calculatedLevel)
         setResult(detected.length > 0 ? 'Review Required (Offline analysis)' : 'No obvious signs found.')
+        saveLinkCheckToSupabaseDirect({
+          url: formattedUrl,
+          domain: parsedUrl.hostname,
+          risk_score: calculatedScore,
+          risk_level: calculatedLevel,
+          warnings: detected,
+        })
       } catch {
         setResult('Invalid URL. Please enter a valid web address.')
       }

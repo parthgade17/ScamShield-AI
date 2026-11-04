@@ -1,251 +1,275 @@
-
 import { useEffect, useState } from 'react'
 import {
-  ShieldCheck,
-  LayoutDashboard,
-  ScanSearch,
-  Link,
-  ClipboardCheck,
-  History,
   Settings as SettingsIcon,
+  User,
   Bell,
-  Menu,
-  X,
-  ChevronRight,
-  LogOut,
-  Sun,
   Moon,
+  Sun,
+  Globe,
+  Save,
+  AlertCircle,
+  Loader2,
+  ShieldCheck,
 } from 'lucide-react'
+import { API_BASE_URL } from '../../api'
+import { useLanguage, AVAILABLE_LANGUAGES, type Language } from '../../context/LanguageContext'
 
-import Dashboard from './components/pages/Dashboard'
-import ScamScanner from './components/pages/ScamScanner'
-import LinkChecker from './components/pages/LinkChecker'
-import HumanReview from './components/pages/HumanReview'
-import CaseHistory from './components/pages/CaseHistory'
-import Settings from './components/pages/Settings'
+type SettingsProps = {
+  darkMode: boolean
+  onDarkModeChange: (enabled: boolean) => void
+}
 
-import './App.css'
+const KEYS = {
+  name: 'scamshield-display-name',
+  notifications: 'scamshield-notifications',
+}
 
-const navigation = [
-  { name: 'Dashboard', icon: LayoutDashboard },
-  { name: 'Scam Scanner', icon: ScanSearch },
-  { name: 'Link Checker', icon: Link },
-  { name: 'Human Review', icon: ClipboardCheck },
-  { name: 'Case History', icon: History },
-  { name: 'Settings', icon: SettingsIcon },
-]
-
-function App() {
-  const [activePage, setActivePage] = useState('Dashboard')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  // Load the previously saved theme.
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('scamshield-theme') === 'dark'
-    } catch {
-      return false
-    }
-  })
-
-  // Apply the theme to the whole application and persist it.
-  useEffect(() => {
-    const theme = darkMode ? 'dark' : 'light'
-
-    document.documentElement.setAttribute('data-theme', theme)
-    document.documentElement.style.colorScheme = theme
-
-    try {
-      localStorage.setItem('scamshield-theme', theme)
-    } catch (error) {
-      console.error('[ScamShield] Unable to save theme:', error)
-    }
-  }, [darkMode])
-
-  function navigateTo(page: string) {
-    setActivePage(page)
-    setSidebarOpen(false)
+function getSavedValue(key: string, fallback: string): string {
+  try {
+    return localStorage.getItem(key) ?? fallback
+  } catch {
+    return fallback
   }
+}
 
-  function renderPage() {
-    switch (activePage) {
-      case 'Scam Scanner':
-        return <ScamScanner />
+export default function Settings({
+  darkMode,
+  onDarkModeChange,
+}: SettingsProps) {
+  const { language, setLanguage, t } = useLanguage()
 
-      case 'Link Checker':
-        return <LinkChecker />
+  const [name, setName] = useState(() =>
+    getSavedValue(KEYS.name, 'ScamShield User'),
+  )
 
-      case 'Human Review':
-        return <HumanReview />
+  const [notifications, setNotifications] = useState(
+    () => getSavedValue(KEYS.notifications, 'true') === 'true',
+  )
 
-      case 'Case History':
-        return <CaseHistory />
+  const [status, setStatus] = useState('')
+  const [hasError, setHasError] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-      case 'Settings':
-        return (
-          <Settings
-            darkMode={darkMode}
-            onDarkModeChange={setDarkMode}
-          />
-        )
+  useEffect(() => {
+    async function loadRemoteSettings() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/settings`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.language && (data.language === 'English' || data.language === 'Hindi' || data.language === 'Marathi')) {
+            setLanguage(data.language as Language)
+          }
+          if (typeof data.notifications_enabled === 'boolean') {
+            setNotifications(data.notifications_enabled)
+          }
+          if (data.theme === 'dark' && !darkMode) {
+            onDarkModeChange(true)
+          }
+        }
+      } catch (e) {
+        console.error('Remote settings load error:', e)
+      }
+    }
+    loadRemoteSettings()
+  }, [])
 
-      default:
-        return <Dashboard onNavigate={navigateTo} />
+  async function savePreferences() {
+    setSaving(true)
+    try {
+      localStorage.setItem(KEYS.name, name.trim())
+      localStorage.setItem(
+        KEYS.notifications,
+        String(notifications),
+      )
+      localStorage.setItem(
+        'scamshield-theme',
+        darkMode ? 'dark' : 'light',
+      )
+
+      // Sync to Supabase database
+      await fetch(`${API_BASE_URL}/api/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language,
+          theme: darkMode ? 'dark' : 'light',
+          notifications_enabled: notifications,
+        }),
+      })
+
+      setHasError(false)
+      setStatus(t('settings.saved_success'))
+    } catch (error) {
+      console.error('[ScamShield] Could not save preferences:', error)
+      setHasError(true)
+      setStatus('Saved locally. Could not sync with database.')
+    } finally {
+      setSaving(false)
     }
   }
 
   return (
-    <div className={`app-layout ${darkMode ? 'dark-mode' : 'light-mode'}`}>
-      {sidebarOpen && (
-        <button
-          type="button"
-          className="sidebar-overlay"
-          aria-label="Close navigation"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+    <div className="page-container settings-page">
+      <div className="page-title">
+        <div className="settings-title-icon">
+          <SettingsIcon size={28} />
+        </div>
 
-      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
-        <div className="brand">
-          <div className="brand-icon">
-            <ShieldCheck size={27} />
+        <div>
+          <h1>{t('settings.title')}</h1>
+          <p>{t('settings.subtitle')}</p>
+        </div>
+      </div>
+
+      <div className="content-card settings-card">
+        {/* Profile */}
+        <section className="settings-section">
+          <h3>
+            <User size={20} />
+            {t('settings.profile_section')}
+          </h3>
+
+          <label htmlFor="settings-name">{t('settings.display_name')}</label>
+
+          <input
+            id="settings-name"
+            type="text"
+            value={name}
+            maxLength={60}
+            placeholder="Enter your display name"
+            onChange={(event) => {
+              setName(event.target.value)
+              setStatus('')
+            }}
+          />
+        </section>
+
+        {/* Language Selection */}
+        <section className="settings-section">
+          <h3>
+            <Globe size={20} />
+            {t('settings.lang_section')}
+          </h3>
+
+          <label htmlFor="settings-language">
+            {t('settings.lang_choose')}
+          </label>
+
+          <select
+            id="settings-language"
+            value={language}
+            onChange={(event) => {
+              const selected = event.target.value as Language
+              setLanguage(selected)
+              setStatus('')
+            }}
+          >
+            {AVAILABLE_LANGUAGES.map((lang) => (
+              <option key={lang.value} value={lang.value}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
+        </section>
+
+        {/* Appearance */}
+        <section className="settings-section">
+          <h3>
+            {darkMode ? <Moon size={20} /> : <Sun size={20} />}
+            {t('settings.appearance_section')}
+          </h3>
+
+          <div className="settings-option">
+            <div className="settings-option-info">
+              <strong>{t('settings.dark_mode')}</strong>
+              <p>
+                {darkMode
+                  ? 'Dark mode is active'
+                  : 'Light mode is active'}
+              </p>
+            </div>
+
+            <label
+              className="settings-switch"
+              htmlFor="settings-dark-mode"
+            >
+              <input
+                id="settings-dark-mode"
+                type="checkbox"
+                checked={darkMode}
+                onChange={(event) => {
+                  onDarkModeChange(event.target.checked)
+                  setStatus('')
+                }}
+              />
+
+              <span className="settings-switch-track" />
+            </label>
           </div>
+        </section>
 
-          <div className="brand-text">
-            <h2>
-              ScamShield<span> AI</span>
-            </h2>
-            <p>DIGITAL SAFETY PLATFORM</p>
+        {/* Notifications */}
+        <section className="settings-section">
+          <h3>
+            <Bell size={20} />
+            {t('settings.notifications_section')}
+          </h3>
+
+          <div className="settings-option">
+            <div className="settings-option-info">
+              <strong>{t('settings.enable_notifications')}</strong>
+              <p>Receive alert notices for high-risk scam detections.</p>
+            </div>
+
+            <label
+              className="settings-switch"
+              htmlFor="settings-notifications"
+            >
+              <input
+                id="settings-notifications"
+                type="checkbox"
+                checked={notifications}
+                onChange={(event) => {
+                  setNotifications(event.target.checked)
+                  setStatus('')
+                }}
+              />
+
+              <span className="settings-switch-track" />
+            </label>
           </div>
+        </section>
 
+        {/* Save */}
+        <div className="settings-save-area">
           <button
             type="button"
-            className="mobile-close"
-            aria-label="Close sidebar"
-            onClick={() => setSidebarOpen(false)}
+            className="primary-button"
+            disabled={saving}
+            onClick={savePreferences}
           >
-            <X size={21} />
+            {saving ? <Loader2 size={18} className="spinner" /> : <Save size={18} />}
+            {saving ? t('settings.saving') : t('settings.save_btn')}
           </button>
-        </div>
 
-        <div className="sidebar-label">MAIN MENU</div>
-
-        <nav className="sidebar-nav" aria-label="Main navigation">
-          {navigation.map((item) => {
-            const Icon = item.icon
-            const active = activePage === item.name
-
-            return (
-              <button
-                key={item.name}
-                type="button"
-                className={`nav-item ${active ? 'nav-active' : ''}`}
-                onClick={() => navigateTo(item.name)}
-                aria-current={active ? 'page' : undefined}
-              >
-                <Icon size={20} />
-                <span>{item.name}</span>
-                {active && <ChevronRight size={17} />}
-              </button>
-            )
-          })}
-        </nav>
-
-        <div className="sidebar-spacer" />
-
-        <div className="sidebar-safety">
-          <ShieldCheck size={25} />
-          <h3>Stay Protected</h3>
-          <p>
-            Stay alert. Verify unexpected requests before sharing
-            personal or financial information.
-          </p>
-        </div>
-
-        <div className="sidebar-footer">
-          <div className="user-avatar">S</div>
-
-          <div className="user-info">
-            <h4>ScamShield User</h4>
-            <p>Standard Account</p>
-          </div>
-
-          <LogOut size={18} />
-        </div>
-      </aside>
-
-      <main className="main-area">
-        <header className="topbar">
-          <div className="topbar-left">
-            <button
-              type="button"
-              className="mobile-menu"
-              aria-label="Open navigation"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu size={23} />
-            </button>
-
-            <div>
-              <p className="breadcrumb">Workspace / {activePage}</p>
-              <h2>{activePage}</h2>
-            </div>
-          </div>
-
-          <div className="topbar-right">
-            <button
-              type="button"
-              className="theme-toggle"
-              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              onClick={() => setDarkMode((previous) => !previous)}
-            >
-              {darkMode ? <Sun size={19} /> : <Moon size={19} />}
-              <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
-            </button>
-
-            <div className="system-status">
-              <span className="status-dot" />
-              Demo Mode
-            </div>
-
-            <button
-              type="button"
-              className="notification-button"
-              aria-label="Notifications"
-              title="Demo notifications"
-              onClick={() =>
-                window.alert(
-                  'You are viewing ScamShield AI demo mode. No new notifications are available.',
-                )
+          {status && (
+            <p
+              className={
+                hasError ? 'settings-error' : 'settings-success'
               }
+              role="status"
             >
-              <Bell size={21} />
-              <span />
-            </button>
+              {hasError ? (
+                <AlertCircle size={18} />
+              ) : (
+                <ShieldCheck size={18} />
+              )}
 
-            <button
-              type="button"
-              className="topbar-avatar"
-              aria-label="Open settings"
-              onClick={() => navigateTo('Settings')}
-            >
-              S
-            </button>
-          </div>
-        </header>
-
-        <div className="page-content">{renderPage()}</div>
-
-        <footer className="app-footer">
-          <p>
-            © 2026 ScamShield AI · Built for safer digital commerce
-          </p>
-          <p>AI-assisted screening · Human-verified response</p>
-        </footer>
-      </main>
+              {status}
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
-
-export default App
