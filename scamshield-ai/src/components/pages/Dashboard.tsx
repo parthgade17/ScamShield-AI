@@ -43,12 +43,22 @@ function Dashboard({ onNavigate }: DashboardProps) {
     if (showRefreshing) setIsRefreshing(true)
     setErrorMessage(null)
 
-    const statsUrl = `${API_BASE_URL}/api/dashboard/stats`
+    const statsUrl = `${API_BASE_URL}/api/dashboard/stats?_t=${Date.now()}`
     dbLogger.info('Dashboard', `Requesting live database statistics from ${statsUrl}...`)
 
     try {
       // 1. Try Backend API first (SQLAlchemy + Gemini Engine)
-      const response = await fetchWithTimeout(statsUrl, {}, 4500)
+      const response = await fetchWithTimeout(
+        statsUrl,
+        {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            Pragma: 'no-cache',
+          },
+        },
+        4500
+      )
 
       if (response.ok) {
         const data = await response.json()

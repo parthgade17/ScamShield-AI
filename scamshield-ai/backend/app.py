@@ -175,6 +175,13 @@ def deployment_after_request(response):
     status_code = response.status_code
     level = logging.INFO if status_code < 400 else logging.WARNING if status_code < 500 else logging.ERROR
     logger.log(level, f"<== [RESPONSE] {request.method} {request.path} -> Status {status_code} ({duration_str})")
+
+    # Prevent caching on dynamic API routes so dashboard & case history stay completely fresh
+    if request.path.startswith("/api/") or request.path.startswith("/history") or request.path.startswith("/links"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+
     return response
 
 
@@ -700,9 +707,9 @@ def get_stats_from_supabase_rest() -> dict:
         }
 
 
-def get_history_from_supabase_rest(limit: int = 20, search_query: str = "", risk_filter: str = "") -> list:
+def get_history_from_supabase_rest(limit: int = 50, search_query: str = "", risk_filter: str = "") -> list:
     try:
-        endpoint = f"scan_history?select=id,message,risk_level,risk_score,created_at,detection_method,review_status,explanation,indicators,recommendations&order=id.desc&limit={limit}"
+        endpoint = f"scan_history?select=id,message,risk_level,risk_score,created_at,detection_method,ai_model,review_status,review_decision,reviewed_at,explanation,indicators,recommendations&order=id.desc&limit={limit}"
         if search_query:
             clean = search_query.strip().replace("%", "").replace("_", "")
             endpoint += f"&message=ilike.*{quote(clean)}*"
@@ -710,9 +717,36 @@ def get_history_from_supabase_rest(limit: int = 20, search_query: str = "", risk
             endpoint += f"&risk_level=ilike.*{quote(risk_filter)}*"
 
         status, body = make_supabase_request(endpoint)
-        return body if (isinstance(body, list)) else []
+        if isinstance(body, list):
+            for item in body:
+                if isinstance(item, dict) and not item.get("thumbnail"):
+                    inds = item.get("indicators")
+                    if isinstance(inds, list):
+                        for ind in inds:
+                            if isinstance(ind, dict) and ind.get("thumbnail"):
+                                item["thumbnail"] = ind["thumbnail"]
+                                break
+            return body
+        return []
     except Exception as exc:
         logger.warning(f"[SUPABASE_REST] History failover warning: {type(exc).__name__}: {exc}")
+        return []
+
+
+def get_link_history_from_supabase_rest(limit: int = 50, search_query: str = "", risk_filter: str = "") -> list:
+    try:
+        endpoint = f"link_checks?select=id,url,domain,risk_score,risk_level,classification,warnings,signals,created_at&order=id.desc&limit={limit}"
+        if search_query:
+            clean = search_query.strip().replace("%", "").replace("_", "")
+            clean_q = quote(clean)
+            endpoint += f"&or=(url.ilike.*{clean_q}*,domain.ilike.*{clean_q}*)"
+        if risk_filter:
+            endpoint += f"&risk_level=ilike.*{quote(risk_filter)}*"
+
+        status, body = make_supabase_request(endpoint)
+        return body if (isinstance(body, list)) else []
+    except Exception as exc:
+        logger.warning(f"[SUPABASE_REST] Link history failover warning: {type(exc).__name__}: {exc}")
         return []
 
 
@@ -2385,6 +2419,15 @@ def scan_history():
 @app.delete("/api/history/<int:scan_id>")
 @app.delete("/history/<int:scan_id>")
 def delete_scan(scan_id):
+    if DATABASE_STATUS != "connected":
+        status, body = make_supabase_request(f"scan_history?id=eq.{scan_id}", method="DELETE")
+        if status in (200, 204):
+            return jsonify({"message": f"Scan #{scan_id} deleted successfully."}), 200
+        elif status == 404:
+            return jsonify({"error": "Scan record not found."}), 404
+        else:
+            return jsonify({"error": "Could not delete scan."}), 500
+
     try:
         record = db.session.get(ScanHistory, scan_id)
         if not record:
@@ -2403,7 +2446,10 @@ def delete_scan(scan_id):
             db.session.rollback()
         except Exception:
             pass
-        print("[DATABASE] Delete failed:", type(exc).__name__, exc)
+        print("[DATABASE] Scan delete SQLAlchemy failed, falling back to Supabase PostgREST:", type(exc).__name__, exc)
+        status, body = make_supabase_request(f"scan_history?id=eq.{scan_id}", method="DELETE")
+        if status in (200, 204):
+            return jsonify({"message": f"Scan #{scan_id} deleted successfully."}), 200
         return jsonify({"error": "Could not delete scan."}), 500
     finally:
         db.session.remove()
@@ -2773,11 +2819,18 @@ def check_link_endpoint():
 @app.get("/api/links/history")
 @app.get("/links/history")
 def link_history():
-    try:
-        limit = min(100, max(1, request.args.get("limit", 50, type=int)))
-        search_query = (request.args.get("q") or request.args.get("search") or "").strip()
-        risk_filter = (request.args.get("risk") or "").strip()
+    limit = min(100, max(1, request.args.get("limit", 50, type=int)))
+    search_query = (request.args.get("q") or request.args.get("search") or "").strip()
+    risk_filter = (request.args.get("risk") or "").strip()
 
+    if DATABASE_STATUS != "connected":
+        items = get_link_history_from_supabase_rest(limit=limit, search_query=search_query, risk_filter=risk_filter)
+        return jsonify({
+            "count": len(items),
+            "items": items,
+        }), 200
+
+    try:
         query = LinkCheck.query
         if search_query:
             query = query.filter(
@@ -2799,8 +2852,9 @@ def link_history():
             db.session.rollback()
         except Exception:
             pass
-        print("[DATABASE] Link history retrieval failed:", type(exc).__name__)
-        return jsonify({"count": 0, "items": []}), 200
+        print("[DATABASE] Link history SQLAlchemy query failed, falling back to Supabase PostgREST:", type(exc).__name__, exc)
+        items = get_link_history_from_supabase_rest(limit=limit, search_query=search_query, risk_filter=risk_filter)
+        return jsonify({"count": len(items), "items": items}), 200
     finally:
         db.session.remove()
 
@@ -2808,6 +2862,15 @@ def link_history():
 @app.delete("/api/links/<int:link_id>")
 @app.delete("/links/<int:link_id>")
 def delete_link_check(link_id):
+    if DATABASE_STATUS != "connected":
+        status, body = make_supabase_request(f"link_checks?id=eq.{link_id}", method="DELETE")
+        if status in (200, 204):
+            return jsonify({"status": "ok", "message": f"Link check #{link_id} deleted."}), 200
+        elif status == 404:
+            return jsonify({"error": "Link check record not found."}), 404
+        else:
+            return jsonify({"error": "Failed to delete link check."}), 500
+
     try:
         record = db.session.get(LinkCheck, link_id)
         if not record:
@@ -2826,6 +2889,10 @@ def delete_link_check(link_id):
             db.session.rollback()
         except Exception:
             pass
+        print("[DATABASE] Link check delete SQLAlchemy failed, falling back to Supabase PostgREST:", type(exc).__name__, exc)
+        status, body = make_supabase_request(f"link_checks?id=eq.{link_id}", method="DELETE")
+        if status in (200, 204):
+            return jsonify({"status": "ok", "message": f"Link check #{link_id} deleted."}), 200
         return jsonify({"error": "Failed to delete link check."}), 500
     finally:
         db.session.remove()
@@ -2869,17 +2936,9 @@ def get_review_queue():
         except Exception:
             pass
         print("[DATABASE] Review queue SQLAlchemy error, falling back to Supabase PostgREST:", type(exc).__name__, exc)
-        try:
-            req = urllib.request.Request(
-                f"{SUPABASE_URL}/rest/v1/scan_history?risk_level=in.(High,Medium)&review_status=eq.pending&order=id.desc&limit=30",
-                headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
-            )
-            with urllib.request.urlopen(req, timeout=5) as res:
-                items = json.loads(res.read().decode("utf-8"))
-                return jsonify({"count": len(items), "cases": items}), 200
-        except Exception:
-            pass
-        return jsonify({"count": 0, "cases": []}), 200
+        status, items = make_supabase_request("scan_history?risk_level=in.(High,Medium)&review_status=eq.pending&order=id.desc&limit=30")
+        items_list = items if (isinstance(items, list)) else []
+        return jsonify({"count": len(items_list), "cases": items_list}), 200
     finally:
         db.session.remove()
 

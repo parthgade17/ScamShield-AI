@@ -222,7 +222,14 @@ export async function fetchHistoryFromSupabase(searchQuery?: string): Promise<Ca
   }
 
   try {
-    const res = await fetchWithTimeout(url, { headers: SUPABASE_HEADERS }, 10000)
+    const res = await fetchWithTimeout(
+      url,
+      {
+        cache: 'no-store',
+        headers: { ...SUPABASE_HEADERS, 'Cache-Control': 'no-cache, no-store, must-revalidate', Pragma: 'no-cache' },
+      },
+      10000
+    )
     if (!res.ok) {
       const text = await res.text()
       throw new Error(`Supabase returned HTTP ${res.status}: ${text}`)
@@ -298,7 +305,14 @@ export async function fetchLinkHistoryFromSupabase(searchQuery?: string): Promis
   }
 
   try {
-    const res = await fetchWithTimeout(url, { headers: SUPABASE_HEADERS }, 9000)
+    const res = await fetchWithTimeout(
+      url,
+      {
+        cache: 'no-store',
+        headers: { ...SUPABASE_HEADERS, 'Cache-Control': 'no-cache, no-store, must-revalidate', Pragma: 'no-cache' },
+      },
+      9000
+    )
     if (!res.ok) {
       const text = await res.text()
       throw new Error(`Supabase link_checks returned HTTP ${res.status}: ${text}`)
@@ -568,21 +582,22 @@ export async function fetchStatsFromSupabase(): Promise<DashboardStats> {
   const startTime = Date.now()
 
   try {
+    const statsHeaders = { ...SUPABASE_HEADERS, 'Cache-Control': 'no-cache, no-store, must-revalidate', Pragma: 'no-cache' }
     // Parallel requests with independent failure tolerance
     const [historyRes, linksRes, reviewsRes] = await Promise.all([
       fetchWithTimeout(
         `${SUPABASE_URL}/rest/v1/scan_history?select=id,risk_level,review_status`,
-        { headers: SUPABASE_HEADERS },
+        { cache: 'no-store', headers: statsHeaders },
         8000
       ),
       fetchWithTimeout(
         `${SUPABASE_URL}/rest/v1/link_checks?select=id`,
-        { headers: SUPABASE_HEADERS },
+        { cache: 'no-store', headers: statsHeaders },
         8000
       ).catch(() => null),
       fetchWithTimeout(
         `${SUPABASE_URL}/rest/v1/human_review?select=id`,
-        { headers: SUPABASE_HEADERS },
+        { cache: 'no-store', headers: statsHeaders },
         8000
       ).catch(() => null),
     ])

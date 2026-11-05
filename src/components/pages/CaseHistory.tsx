@@ -94,13 +94,14 @@ export default function CaseHistory() {
     setLoading(true)
     setErrorMessage(null)
     const q = encodeURIComponent(search.trim())
+    const ts = Date.now()
 
     const messagesUrl = q
-      ? `${API_BASE_URL}/api/history?q=${q}`
-      : `${API_BASE_URL}/api/history?limit=50`
+      ? `${API_BASE_URL}/api/history?q=${q}&_t=${ts}`
+      : `${API_BASE_URL}/api/history?limit=50&_t=${ts}`
     const linksUrl = q
-      ? `${API_BASE_URL}/api/links/history?q=${q}`
-      : `${API_BASE_URL}/api/links/history?limit=50`
+      ? `${API_BASE_URL}/api/links/history?q=${q}&_t=${ts}`
+      : `${API_BASE_URL}/api/links/history?limit=50&_t=${ts}`
 
     dbLogger.info('CaseHistory', `Fetching unified scan & link history...`)
 
@@ -108,69 +109,84 @@ export default function CaseHistory() {
     let loadedLinks: LinkHistoryItem[] = []
     let usedBackend = false
 
-    // 1. Try Backend API first for both endpoints
+    // 1. Try Backend API first for both endpoints with strict no-cache
     try {
+      const fetchOpts: RequestInit = {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+        },
+      }
       const [msgRes, linkRes] = await Promise.all([
-        fetchWithTimeout(messagesUrl, {}, 4500).catch(() => null),
-        fetchWithTimeout(linksUrl, {}, 4500).catch(() => null),
+        fetchWithTimeout(messagesUrl, fetchOpts, 4500).catch(() => null),
+        fetchWithTimeout(linksUrl, fetchOpts, 4500).catch(() => null),
       ])
 
       if (msgRes && msgRes.ok) {
         const data = await msgRes.json()
-        loadedMessages = data.history || []
-        usedBackend = true
+        loadedMessages = data.history || data.items || []
+        if (loadedMessages.length > 0) {
+          usedBackend = true
+        }
       }
       if (linkRes && linkRes.ok) {
         const data = await linkRes.json()
-        loadedLinks = data.items || []
-        usedBackend = true
-      }
-
-      if (usedBackend) {
-        setMessages(loadedMessages)
-        setLinks(loadedLinks)
-        setDataSource('Backend API (Postgres)')
-        dbLogger.success(
-          'CaseHistory',
-          `Loaded ${loadedMessages.length} message/vision scans and ${loadedLinks.length} links from Backend.`
-        )
+        loadedLinks = data.items || data.history || []
+        if (loadedLinks.length > 0) {
+          usedBackend = true
+        }
       }
     } catch (backendErr) {
       dbLogger.warn('CaseHistory', 'Backend query failed. Proceeding to Supabase fallback...', backendErr)
     }
 
-    // 2. If backend failed or returned empty in offline mode, failover to Supabase PostgREST
-    if (!usedBackend) {
+    // 2. High-reliability fallback: if either loaded 0 items or backend was unavailable,
+    // query Supabase PostgREST directly so Link Checks & Message Scans are never stuck at 0
+    if (loadedMessages.length === 0 || loadedLinks.length === 0) {
       try {
         const [supaMsgs, supaLinks] = await Promise.all([
-          fetchHistoryFromSupabase(search.trim()).catch(() => getCachedHistory() || []),
-          fetchLinkHistoryFromSupabase(search.trim()).catch(() => getCachedLinkHistory() || []),
+          loadedMessages.length === 0
+            ? fetchHistoryFromSupabase(search.trim()).catch(() => getCachedHistory() || [])
+            : Promise.resolve(loadedMessages),
+          loadedLinks.length === 0
+            ? fetchLinkHistoryFromSupabase(search.trim()).catch(() => getCachedLinkHistory() || [])
+            : Promise.resolve(loadedLinks),
         ])
 
-        setMessages(supaMsgs)
-        setLinks(supaLinks)
-        setDataSource('Supabase Direct')
-        dbLogger.success(
-          'CaseHistory',
-          `Loaded ${supaMsgs.length} scans and ${supaLinks.length} links from Supabase Direct.`
-        )
-      } catch (supabaseErr) {
-        dbLogger.warn(
-          'CaseHistory',
-          'Failed to retrieve live history from both Backend and Supabase, checking local cache.',
-          supabaseErr
-        )
-        const cachedM = getCachedHistory() || []
-        const cachedL = getCachedLinkHistory() || []
-        if (cachedM.length > 0 || cachedL.length > 0) {
-          setMessages(cachedM)
-          setLinks(cachedL)
-          setDataSource('Cached Local')
-        } else {
-          setErrorMessage(
-            'Could not load case history from database. Open DevTools (F12) to inspect logs or click Retry.'
-          )
+        if (loadedMessages.length === 0 && supaMsgs.length > 0) {
+          loadedMessages = supaMsgs
         }
+        if (loadedLinks.length === 0 && supaLinks.length > 0) {
+          loadedLinks = supaLinks
+        }
+      } catch (supabaseErr) {
+        dbLogger.warn('CaseHistory', 'Supabase Direct query fallback error:', supabaseErr)
+      }
+    }
+
+    if (loadedMessages.length > 0 || loadedLinks.length > 0) {
+      setMessages(loadedMessages)
+      setLinks(loadedLinks)
+      setDataSource(usedBackend ? 'Backend API (Postgres)' : 'Supabase Direct')
+      dbLogger.success(
+        'CaseHistory',
+        `Loaded ${loadedMessages.length} message/vision scans and ${loadedLinks.length} links (Source: ${
+          usedBackend ? 'Backend API' : 'Supabase Direct'
+        }).`
+      )
+    } else {
+      // 3. Fall back to cached local storage
+      const cachedM = getCachedHistory() || []
+      const cachedL = getCachedLinkHistory() || []
+      if (cachedM.length > 0 || cachedL.length > 0) {
+        setMessages(cachedM)
+        setLinks(cachedL)
+        setDataSource('Cached Local')
+      } else {
+        setErrorMessage(
+          'Could not load case history from database. Open DevTools (F12) to inspect logs or click Retry.'
+        )
       }
     }
 
