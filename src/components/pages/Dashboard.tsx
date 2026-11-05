@@ -57,7 +57,7 @@ function Dashboard({ onNavigate }: DashboardProps) {
             Pragma: 'no-cache',
           },
         },
-        4500
+        8500
       )
 
       if (response.ok) {

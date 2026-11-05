@@ -20,9 +20,9 @@ import {
 import {
   API_BASE_URL,
   SUPABASE_URL,
-  SUPABASE_HEADERS,
   dbLogger,
   fetchWithTimeout,
+  fetchSupabaseWithRecovery,
   fetchHistoryFromSupabase,
   fetchLinkHistoryFromSupabase,
   getCachedHistory,
@@ -120,8 +120,8 @@ export default function CaseHistory() {
     try {
       // Parallel Dual-Query: Fetch from Backend API and direct Supabase PostgREST simultaneously
       const [msgRes, linkRes, supaMsgs, supaLinks] = await Promise.all([
-        fetchWithTimeout(messagesUrl, fetchOpts, 5000).catch(() => null),
-        fetchWithTimeout(linksUrl, fetchOpts, 5000).catch(() => null),
+        fetchWithTimeout(messagesUrl, fetchOpts, 8000).catch(() => null),
+        fetchWithTimeout(linksUrl, fetchOpts, 8000).catch(() => null),
         fetchHistoryFromSupabase(search.trim()).catch(() => []),
         fetchLinkHistoryFromSupabase(search.trim()).catch(() => []),
       ])
@@ -342,10 +342,10 @@ export default function CaseHistory() {
       }
 
       if (!deleted) {
-        const supaRes = await fetchWithTimeout(
+        const supaRes = await fetchSupabaseWithRecovery(
           `${SUPABASE_URL}/rest/v1/scan_history?id=eq.${id}`,
-          { method: 'DELETE', headers: SUPABASE_HEADERS },
-          3500
+          { method: 'DELETE' },
+          5000
         )
         if (supaRes.ok) deleted = true
       }
@@ -385,10 +385,10 @@ export default function CaseHistory() {
       }
 
       if (!deleted) {
-        const supaRes = await fetchWithTimeout(
+        const supaRes = await fetchSupabaseWithRecovery(
           `${SUPABASE_URL}/rest/v1/link_checks?id=eq.${id}`,
-          { method: 'DELETE', headers: SUPABASE_HEADERS },
-          3500
+          { method: 'DELETE' },
+          5000
         )
         if (supaRes.ok) deleted = true
       }

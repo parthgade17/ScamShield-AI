@@ -7,15 +7,23 @@ export const SUPABASE_URL: string = (
   import.meta.env.VITE_SUPABASE_URL || 'https://braqdveiscllhubnmaqa.supabase.co'
 ).replace(/\/+$/, '')
 
+export const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_smnRe-WzTPbS4l2-1CxYpQ_ZrAMn29u'
+
 const rawAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim().replace(/^["']|["']$/g, '')
-export const SUPABASE_ANON_KEY: string =
-  rawAnonKey || 'sb_publishable_smnRe-WzTPbS4l2-1CxYpQ_ZrAMn29u'
+export let SUPABASE_ANON_KEY: string =
+  rawAnonKey || DEFAULT_SUPABASE_ANON_KEY
 
 export const SUPABASE_HEADERS: Record<string, string> = {
   apikey: SUPABASE_ANON_KEY,
   Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
   'Content-Type': 'application/json',
   Prefer: 'return=representation',
+}
+
+export function updateActiveSupabaseKey(newKey: string): void {
+  SUPABASE_ANON_KEY = newKey
+  SUPABASE_HEADERS.apikey = newKey
+  SUPABASE_HEADERS.Authorization = `Bearer ${newKey}`
 }
 
 function resolveApiBaseUrl(): string {
@@ -114,6 +122,39 @@ export async function fetchWithTimeout(
     clearTimeout(id)
     throw err
   }
+}
+
+/**
+ * Safe fetcher for Supabase PostgREST with automatic 401 recovery:
+ * If the active key fails with HTTP 401 Unauthorized, it automatically updates to
+ * the verified default publishable key and retries the request.
+ */
+export async function fetchSupabaseWithRecovery(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = 9000
+): Promise<Response> {
+  const mergedHeaders: Record<string, string> = {
+    ...SUPABASE_HEADERS,
+    ...((options.headers as Record<string, string>) || {}),
+  }
+
+  let res = await fetchWithTimeout(url, { ...options, headers: mergedHeaders }, timeoutMs)
+
+  if (res.status === 401 && SUPABASE_ANON_KEY !== DEFAULT_SUPABASE_ANON_KEY) {
+    dbLogger.warn(
+      'Supabase Direct',
+      'Environment Supabase key returned 401 Unauthorized. Auto-recovering with verified publishable key...'
+    )
+    updateActiveSupabaseKey(DEFAULT_SUPABASE_ANON_KEY)
+    const retryHeaders: Record<string, string> = {
+      ...SUPABASE_HEADERS,
+      ...((options.headers as Record<string, string>) || {}),
+    }
+    res = await fetchWithTimeout(url, { ...options, headers: retryHeaders }, timeoutMs)
+  }
+
+  return res
 }
 
 export type DashboardStats = {
@@ -222,11 +263,11 @@ export async function fetchHistoryFromSupabase(searchQuery?: string): Promise<Ca
   }
 
   try {
-    const res = await fetchWithTimeout(
+    const res = await fetchSupabaseWithRecovery(
       url,
       {
         cache: 'no-store',
-        headers: { ...SUPABASE_HEADERS, 'Cache-Control': 'no-cache, no-store, must-revalidate', Pragma: 'no-cache' },
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', Pragma: 'no-cache' },
       },
       10000
     )
@@ -305,11 +346,11 @@ export async function fetchLinkHistoryFromSupabase(searchQuery?: string): Promis
   }
 
   try {
-    const res = await fetchWithTimeout(
+    const res = await fetchSupabaseWithRecovery(
       url,
       {
         cache: 'no-store',
-        headers: { ...SUPABASE_HEADERS, 'Cache-Control': 'no-cache, no-store, must-revalidate', Pragma: 'no-cache' },
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', Pragma: 'no-cache' },
       },
       9000
     )
@@ -391,11 +432,11 @@ export async function saveScanToSupabaseDirect(payload: {
         (payload.risk_level === 'High' || payload.risk_level === 'Medium' ? 'pending' : 'not_required'),
       created_at: new Date().toISOString(),
     }
-    const res = await fetchWithTimeout(
+    const res = await fetchSupabaseWithRecovery(
       url,
       {
         method: 'POST',
-        headers: SUPABASE_HEADERS,
+        headers: { Prefer: 'return=representation' },
         body: JSON.stringify(body),
       },
       8000
@@ -443,11 +484,11 @@ export async function saveLinkCheckToSupabaseDirect(payload: {
       signals: payload.signals || [],
       created_at: new Date().toISOString(),
     }
-    const res = await fetchWithTimeout(
+    const res = await fetchSupabaseWithRecovery(
       url,
       {
         method: 'POST',
-        headers: SUPABASE_HEADERS,
+        headers: { Prefer: 'return=representation' },
         body: JSON.stringify(body),
       },
       8000
@@ -456,6 +497,19 @@ export async function saveLinkCheckToSupabaseDirect(payload: {
       const rows = (await res.json()) as Array<{ id: number }>
       if (Array.isArray(rows) && rows.length > 0 && rows[0].id) {
         dbLogger.success('Supabase Direct', `Direct link check saved to Supabase with ID #${rows[0].id}`)
+        const linkItem: LinkHistoryItem = {
+          id: rows[0].id,
+          url: payload.url,
+          domain: payload.domain || null,
+          risk_score: payload.risk_score,
+          risk_level: payload.risk_level,
+          classification: body.classification,
+          warnings: payload.warnings || [],
+          signals: payload.signals || [],
+          created_at: body.created_at,
+        }
+        const existing = getCachedLinkHistory() || []
+        setCachedLinkHistory([linkItem, ...existing.filter((e) => e.url !== linkItem.url)])
         return rows[0].id
       }
     }
@@ -582,22 +636,22 @@ export async function fetchStatsFromSupabase(): Promise<DashboardStats> {
   const startTime = Date.now()
 
   try {
-    const statsHeaders = { ...SUPABASE_HEADERS, 'Cache-Control': 'no-cache, no-store, must-revalidate', Pragma: 'no-cache' }
-    // Parallel requests with independent failure tolerance
+    const noCacheHeaders = { 'Cache-Control': 'no-cache, no-store, must-revalidate', Pragma: 'no-cache' }
+    // Parallel requests with independent failure tolerance and 401 auto-recovery
     const [historyRes, linksRes, reviewsRes] = await Promise.all([
-      fetchWithTimeout(
+      fetchSupabaseWithRecovery(
         `${SUPABASE_URL}/rest/v1/scan_history?select=id,risk_level,review_status`,
-        { cache: 'no-store', headers: statsHeaders },
+        { cache: 'no-store', headers: noCacheHeaders },
         8000
       ),
-      fetchWithTimeout(
+      fetchSupabaseWithRecovery(
         `${SUPABASE_URL}/rest/v1/link_checks?select=id`,
-        { cache: 'no-store', headers: statsHeaders },
+        { cache: 'no-store', headers: noCacheHeaders },
         8000
       ).catch(() => null),
-      fetchWithTimeout(
+      fetchSupabaseWithRecovery(
         `${SUPABASE_URL}/rest/v1/human_review?select=id`,
-        { cache: 'no-store', headers: statsHeaders },
+        { cache: 'no-store', headers: noCacheHeaders },
         8000
       ).catch(() => null),
     ])
@@ -675,9 +729,7 @@ if (typeof window !== 'undefined') {
       console.log('%c[ScamShield DevTools] Testing Supabase connection...', 'color: #2563eb; font-weight: bold;')
       try {
         const start = performance.now()
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/scan_history?select=*&limit=3`, {
-          headers: SUPABASE_HEADERS,
-        })
+        const res = await fetchSupabaseWithRecovery(`${SUPABASE_URL}/rest/v1/scan_history?select=*&limit=3`)
         const data = await res.json()
         const ms = (performance.now() - start).toFixed(1)
         console.log(

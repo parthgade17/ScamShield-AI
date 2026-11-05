@@ -11,9 +11,9 @@ import {
 import {
   API_BASE_URL,
   SUPABASE_URL,
-  SUPABASE_HEADERS,
   dbLogger,
   fetchWithTimeout,
+  fetchSupabaseWithRecovery,
 } from '../../api'
 import { useLanguage } from '../../context/LanguageContext'
 
@@ -64,7 +64,7 @@ export default function HumanReview() {
       // 2. Direct Supabase PostgREST fallback
       try {
         const supaUrl = `${SUPABASE_URL}/rest/v1/scan_history?select=id,message,risk_level,risk_score&review_status=eq.pending&order=id.desc&limit=30`
-        const res = await fetchWithTimeout(supaUrl, { headers: SUPABASE_HEADERS }, 8000)
+        const res = await fetchSupabaseWithRecovery(supaUrl, {}, 8000)
         if (res.ok) {
           const rows = (await res.json()) as Array<{
             id: number
@@ -119,11 +119,10 @@ export default function HumanReview() {
 
       // 2. Direct Supabase PostgREST update fallback
       if (!saved) {
-        const supaUpdate = await fetchWithTimeout(
+        const supaUpdate = await fetchSupabaseWithRecovery(
           `${SUPABASE_URL}/rest/v1/scan_history?id=eq.${id}`,
           {
             method: 'PATCH',
-            headers: SUPABASE_HEADERS,
             body: JSON.stringify({
               review_status: 'reviewed',
               review_decision: decision,
@@ -131,7 +130,7 @@ export default function HumanReview() {
               reviewed_at: new Date().toISOString(),
             }),
           },
-          4000
+          5000
         )
         if (supaUpdate.ok) saved = true
       }
