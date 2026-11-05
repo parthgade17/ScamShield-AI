@@ -813,12 +813,13 @@ def initialize_database():
             logger.warning(f"[DEPLOYMENT-DB] Direct SQLAlchemy connection unavailable ({type(exc).__name__}: {exc})")
             logger.info("[DEPLOYMENT-DB] Active Failover: Real-time Supabase PostgREST sync engine enabled for 100% data persistence.")
 
-            # Immediate verification of Supabase PostgREST sync engine
-            status, test_rows = make_supabase_request("scan_history?select=id&limit=1")
-            if status in (200, 206):
-                logger.info(f"[DEPLOYMENT-DB] Supabase PostgREST sync engine verified: Status {status} OK (Cloud PostgreSQL ready)")
+            # Immediate verification of Supabase PostgREST sync engine for all schemas
+            status_scans, _ = make_supabase_request("scan_history?select=id&limit=1")
+            status_links, _ = make_supabase_request("link_checks?select=id&limit=1")
+            if status_scans in (200, 206) and status_links in (200, 206):
+                logger.info(f"[DEPLOYMENT-DB] Supabase PostgREST sync engine verified: scan_history={status_scans}, link_checks={status_links} OK (Cloud PostgreSQL ready)")
             else:
-                logger.warning(f"[DEPLOYMENT-DB] Supabase PostgREST sync engine check returned status {status}")
+                logger.warning(f"[DEPLOYMENT-DB] Supabase PostgREST check status: scan_history={status_scans}, link_checks={status_links}")
 
         finally:
             db.session.remove()

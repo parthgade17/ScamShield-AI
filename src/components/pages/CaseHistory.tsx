@@ -109,60 +109,73 @@ export default function CaseHistory() {
     let loadedLinks: LinkHistoryItem[] = []
     let usedBackend = false
 
-    // 1. Try Backend API first for both endpoints with strict no-cache
+    const fetchOpts: RequestInit = {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+      },
+    }
+
     try {
-      const fetchOpts: RequestInit = {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          Pragma: 'no-cache',
-        },
-      }
-      const [msgRes, linkRes] = await Promise.all([
-        fetchWithTimeout(messagesUrl, fetchOpts, 4500).catch(() => null),
-        fetchWithTimeout(linksUrl, fetchOpts, 4500).catch(() => null),
+      // Parallel Dual-Query: Fetch from Backend API and direct Supabase PostgREST simultaneously
+      const [msgRes, linkRes, supaMsgs, supaLinks] = await Promise.all([
+        fetchWithTimeout(messagesUrl, fetchOpts, 5000).catch(() => null),
+        fetchWithTimeout(linksUrl, fetchOpts, 5000).catch(() => null),
+        fetchHistoryFromSupabase(search.trim()).catch(() => []),
+        fetchLinkHistoryFromSupabase(search.trim()).catch(() => []),
       ])
 
       if (msgRes && msgRes.ok) {
         const data = await msgRes.json()
-        loadedMessages = data.history || data.items || []
-        if (loadedMessages.length > 0) {
+        const backendMsgs: CaseHistoryItem[] = data.history || data.items || []
+        if (backendMsgs.length > 0) {
+          loadedMessages = backendMsgs
           usedBackend = true
         }
       }
       if (linkRes && linkRes.ok) {
         const data = await linkRes.json()
-        loadedLinks = data.items || data.history || []
-        if (loadedLinks.length > 0) {
+        const backendLinks: LinkHistoryItem[] = data.items || data.history || []
+        if (backendLinks.length > 0) {
+          loadedLinks = backendLinks
           usedBackend = true
         }
       }
-    } catch (backendErr) {
-      dbLogger.warn('CaseHistory', 'Backend query failed. Proceeding to Supabase fallback...', backendErr)
-    }
 
-    // 2. High-reliability fallback: if either loaded 0 items or backend was unavailable,
-    // query Supabase PostgREST directly so Link Checks & Message Scans are never stuck at 0
-    if (loadedMessages.length === 0 || loadedLinks.length === 0) {
-      try {
-        const [supaMsgs, supaLinks] = await Promise.all([
-          loadedMessages.length === 0
-            ? fetchHistoryFromSupabase(search.trim()).catch(() => getCachedHistory() || [])
-            : Promise.resolve(loadedMessages),
-          loadedLinks.length === 0
-            ? fetchLinkHistoryFromSupabase(search.trim()).catch(() => getCachedLinkHistory() || [])
-            : Promise.resolve(loadedLinks),
-        ])
+      // Merge Supabase Direct messages
+      const msgMap = new Map<number, CaseHistoryItem>()
+      loadedMessages.forEach((m) => msgMap.set(m.id, m))
+      supaMsgs.forEach((m) => {
+        if (!msgMap.has(m.id)) msgMap.set(m.id, m)
+      })
+      loadedMessages = Array.from(msgMap.values()).sort((a, b) => {
+        const tA = a.created_at ? new Date(a.created_at).getTime() : a.id
+        const tB = b.created_at ? new Date(b.created_at).getTime() : b.id
+        return tB - tA
+      })
 
-        if (loadedMessages.length === 0 && supaMsgs.length > 0) {
-          loadedMessages = supaMsgs
-        }
-        if (loadedLinks.length === 0 && supaLinks.length > 0) {
-          loadedLinks = supaLinks
-        }
-      } catch (supabaseErr) {
-        dbLogger.warn('CaseHistory', 'Supabase Direct query fallback error:', supabaseErr)
-      }
+      // Merge Supabase Direct links
+      const linkMap = new Map<string, LinkHistoryItem>()
+      loadedLinks.forEach((l) => linkMap.set(`${l.id}-${l.url}`, l))
+      supaLinks.forEach((l) => linkMap.set(`${l.id}-${l.url}`, l))
+
+      // Also merge locally cached links from recent scans
+      const localCachedLinks = getCachedLinkHistory() || []
+      localCachedLinks.forEach((l) => {
+        const key = `${l.id}-${l.url}`
+        if (!linkMap.has(key)) linkMap.set(key, l)
+      })
+
+      loadedLinks = Array.from(linkMap.values()).sort((a, b) => {
+        const tA = a.created_at ? new Date(a.created_at).getTime() : a.id
+        const tB = b.created_at ? new Date(b.created_at).getTime() : b.id
+        return tB - tA
+      })
+    } catch (err) {
+      dbLogger.warn('CaseHistory', 'Fetch error, falling back to local cache:', err)
+      loadedMessages = getCachedHistory() || []
+      loadedLinks = getCachedLinkHistory() || []
     }
 
     if (loadedMessages.length > 0 || loadedLinks.length > 0) {
@@ -176,18 +189,9 @@ export default function CaseHistory() {
         }).`
       )
     } else {
-      // 3. Fall back to cached local storage
-      const cachedM = getCachedHistory() || []
-      const cachedL = getCachedLinkHistory() || []
-      if (cachedM.length > 0 || cachedL.length > 0) {
-        setMessages(cachedM)
-        setLinks(cachedL)
-        setDataSource('Cached Local')
-      } else {
-        setErrorMessage(
-          'Could not load case history from database. Open DevTools (F12) to inspect logs or click Retry.'
-        )
-      }
+      setErrorMessage(
+        'Could not load case history from database. Open DevTools (F12) to inspect logs or click Retry.'
+      )
     }
 
     setLoading(false)
@@ -200,15 +204,58 @@ export default function CaseHistory() {
     return () => clearTimeout(timer)
   }, [fetchAllHistory])
 
+  // Extract and merge all link check items from both link_checks and scan_history
+  const allLinks = useMemo(() => {
+    const map = new Map<string, LinkHistoryItem>()
+    links.forEach((l) => map.set(l.url.trim().toLowerCase(), l))
+
+    messages.forEach((m) => {
+      const method = (m.detection_method || '').toLowerCase()
+      const msg = (m.message || '').trim()
+      const isUrl = /^https?:\/\//i.test(msg) || method.includes('link') || method.includes('url')
+      const key = msg.toLowerCase()
+
+      if (isUrl && !map.has(key)) {
+        let domain: string | null = null
+        try {
+          domain = new URL(msg.startsWith('http') ? msg : `https://${msg}`).hostname
+        } catch {
+          domain = null
+        }
+        map.set(key, {
+          id: m.id,
+          url: msg,
+          domain,
+          risk_score: m.risk_score,
+          risk_level: m.risk_level,
+          classification: m.risk_level === 'High' ? 'malicious' : m.risk_level === 'Medium' ? 'suspicious' : 'legitimate',
+          warnings: Array.isArray(m.indicators) ? m.indicators.map(String) : [],
+          signals: [],
+          created_at: m.created_at,
+        })
+      }
+    })
+
+    return Array.from(map.values()).sort((a, b) => {
+      const tA = a.created_at ? new Date(a.created_at).getTime() : a.id
+      const tB = b.created_at ? new Date(b.created_at).getTime() : b.id
+      return tB - tA
+    })
+  }, [links, messages])
+
   // Partition messages into text vs image scans
   const { textScans, imageScans } = useMemo(() => {
     const texts: CaseHistoryItem[] = []
     const imgs: CaseHistoryItem[] = []
 
     messages.forEach((m) => {
+      const method = (m.detection_method || '').toLowerCase()
+      const msg = (m.message || '').trim()
+      const isUrl = /^https?:\/\//i.test(msg) || method.includes('link') || method.includes('url')
+
       if (isImageRecord(m)) {
         imgs.push(m)
-      } else {
+      } else if (!isUrl) {
         texts.push(m)
       }
     })
@@ -255,7 +302,7 @@ export default function CaseHistory() {
 
     // 3. Checked Links
     if (activeTab === 'all' || activeTab === 'links') {
-      links.forEach((l) => {
+      allLinks.forEach((l) => {
         list.push({
           type: 'link',
           id: l.id,
@@ -277,7 +324,7 @@ export default function CaseHistory() {
       const timeB = b.created_at ? new Date(b.created_at).getTime() : b.id
       return timeB - timeA
     })
-  }, [textScans, imageScans, links, activeTab, t])
+  }, [textScans, imageScans, allLinks, activeTab, t])
 
   // Delete message / image scan record
   async function deleteScanRecord(id: number) {
@@ -589,7 +636,7 @@ export default function CaseHistory() {
             }}
           >
             <Layers size={15} />
-            {t('history.tab_all')} ({textScans.length + links.length + imageScans.length})
+            {t('history.tab_all')} ({textScans.length + allLinks.length + imageScans.length})
           </button>
 
           <button
@@ -631,7 +678,7 @@ export default function CaseHistory() {
             }}
           >
             <LinkIcon size={15} />
-            {t('history.tab_links')} ({links.length})
+            {t('history.tab_links')} ({allLinks.length})
           </button>
 
           <button

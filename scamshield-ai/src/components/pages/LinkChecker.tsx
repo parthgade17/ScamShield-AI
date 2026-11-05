@@ -1,6 +1,13 @@
 import { useState } from 'react'
 import { Link, AlertTriangle, ShieldCheck, Loader2 } from 'lucide-react'
-import { API_BASE_URL, dbLogger, saveLinkCheckToSupabaseDirect } from '../../api'
+import {
+  API_BASE_URL,
+  dbLogger,
+  saveLinkCheckToSupabaseDirect,
+  getCachedLinkHistory,
+  setCachedLinkHistory,
+  type LinkHistoryItem,
+} from '../../api'
 import { useLanguage } from '../../context/LanguageContext'
 
 function LinkChecker() {
@@ -48,6 +55,32 @@ function LinkChecker() {
         setRiskLevel(data.risk_level)
         setWarnings(data.warnings || [])
         dbLogger.success('LinkChecker', 'URL inspection completed:', data)
+
+        // Instantly update client cache so Case History has this check immediately
+        const linkItem: LinkHistoryItem = {
+          id: data.id || Date.now(),
+          url: url.trim(),
+          domain: data.domain || null,
+          risk_score: data.risk_score ?? 0,
+          risk_level: data.risk_level ?? 'Low',
+          classification: data.classification ?? 'legitimate',
+          warnings: data.warnings || [],
+          signals: data.signals || [],
+          created_at: new Date().toISOString(),
+        }
+        const existing = getCachedLinkHistory() || []
+        setCachedLinkHistory([linkItem, ...existing.filter((e) => e.url !== linkItem.url)])
+
+        // Guarantee Supabase persistence if backend did not confirm save
+        if (!data.saved || !data.id) {
+          saveLinkCheckToSupabaseDirect({
+            url: url.trim(),
+            domain: data.domain,
+            risk_score: data.risk_score ?? 0,
+            risk_level: data.risk_level ?? 'Low',
+            warnings: data.warnings,
+          }).catch(() => null)
+        }
 
         if (data.risk_level === 'High') {
           setResult('Caution: High-risk URL warning signs detected!')
